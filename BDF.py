@@ -173,7 +173,7 @@ class BDF(Explicit_ODE):
         self.log_message(' Number of Function Evaluations : '+str(self.statistics["nfcns"]),         verbose)
 
         self.log_message('\nSolver options:\n',                                    verbose)
-        self.log_message(' Solver            : BDF3',                     verbose)
+        self.log_message(' Solver            : BDF{}'.format(self.order),                     verbose)
         self.log_message(' Solver type       : Fixed step\n',                      verbose)
 
 #TODO: remove first pend function.
@@ -203,9 +203,10 @@ class BDFtests(unittest.TestCase):
     def setUp(self):
         self.y0 = scipy.array([0.9, 0.1, 0, 0])
         self.klist = [0] + [10 ** i for i in range(0, 4)]
+        self.orderlist = [2, 3, 4]
 
-    def get_pendulum_function(self, k):
-        def pend(t, y, k=1):
+    def get_pendulum_rhs(self, k):
+        def pend(t, y, k=k):
             """
             This is the right hand side function of the differential equation
             describing the elastic pendulum
@@ -221,20 +222,38 @@ class BDFtests(unittest.TestCase):
             return yprime
         return pend
 
-    def test_order_3_varying_k(self):
+    def test_order_4_varying_k(self):
+        order = 4
         for k in self.klist:
-            pass
+            pend = self.get_pendulum_rhs(k)
+            pend_mod = Explicit_Problem(pend, y0=self.y0)
+            pend_mod.name = 'Nonlinear Pendulum, k = {}'.format(k)
+            exp_sim = BDF(pend_mod, order=order) #Create a BDF solver
+            t, y = exp_sim.simulate(5)
+            exp_sim.plot(mask=[1, 1, 0, 0])
+            mpl.show()
+
+    def test_varying_order_k_1000(self):
+        k = 1000
+        pend = self.get_pendulum_rhs(k)
+        for order in self.orderlist:
+            pend_mod = Explicit_Problem(pend, y0=self.y0)
+            pend_mod.name = 'Nonlinear Pendulum, k = {}'.format(k)
+            exp_sim = BDF(pend_mod, order=order) #Create a BDF solver
+            t, y = exp_sim.simulate(10)
+            exp_sim.plot(mask=[1, 1, 0, 0])
+            mpl.show()
 
 
+if __name__ == '__main__':
+    unittest.main()
+    # appropriate initial values: 0.9, 0.1, 0, 0
+#    pend_mod=Explicit_Problem(pend, y0=np.array([0.9, 0.1, 0, 0]))
+    #pend_mod=Explicit_Problem(pend, y0=np.array([2.*np.pi,1.]))
+#    pend_mod.name='Nonlinear Pendulum'
 
-
-# appropriate initial values: 0.9, 0.1, 0, 0
-pend_mod=Explicit_Problem(pend, y0=np.array([0.9, 0.1, 0, 0]))
-#pend_mod=Explicit_Problem(pend, y0=np.array([2.*np.pi,1.]))
-pend_mod.name='Nonlinear Pendulum'
-
-#Define an explicit solver
-exp_sim = BDF(pend_mod, order=3) #Create a BDF solver
-t, y = exp_sim.simulate(10)
-exp_sim.plot(mask=[1, 1, 0, 0])
-mpl.show()
+    #Define an explicit solver
+#    exp_sim = BDF(pend_mod, order=3) #Create a BDF solver
+#    t, y = exp_sim.simulate(10)
+#    exp_sim.plot(mask=[1, 1, 0, 0])
+#    mpl.show()
