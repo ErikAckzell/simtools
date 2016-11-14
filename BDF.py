@@ -6,7 +6,8 @@ import scipy.linalg as SL
 from scipy.optimize import fsolve
 import scipy
 import unittest
-#from assimulo.solvers import CVode
+from assimulo.solvers import CVode
+
 
 class BDF(Explicit_ODE):
     """
@@ -244,8 +245,61 @@ class BDFtests(unittest.TestCase):
             exp_sim.plot(mask=[1, 1, 0, 0])
             mpl.show()
 
+    def test_excited_pendulum_order_4_k_100(self):
+        k = 100
+        phi = 2 * scipy.pi - 0.3
+        x = scipy.cos(phi)
+        y = scipy.sin(phi)
+        order = 4
+        pend = self.get_pendulum_rhs(k)
+        initial_values = scipy.array([[x, y, 0, 0],
+                                      [x+1.0, y, 0, 0],
+                                      [x+2.0, y, 0, 0],
+                                      [x+5.0, y, 0, 0],
+                                      [x+10.0, y, 0, 0],
+                                      [x+100.0, y, 0, 0]])
+        for y0 in initial_values:
+            pend_mod = Explicit_Problem(pend, y0=y0)
+            pend_mod.name = \
+              'Nonlinear Pendulum, k = {k}, init = {init}'.format(k=k, init=y0)
+            exp_sim = BDF(pend_mod, order=order) #Create a BDF solver
+            t, y = exp_sim.simulate(10)
+            exp_sim.plot(mask=[1, 1, 0, 0])
+            mpl.show()
+
+
 
 if __name__ == '__main__':
+    ##---- TASK 1 ----##
+    def pend(t, y, k=100):
+            """
+            This is the right hand side function of the differential equation
+            describing the elastic pendulum
+            y: 1x4 array
+            k: float
+            """
+            yprime = scipy.array([y[2],
+                                  y[3],
+                                  -y[0] * k * (scipy.sqrt(y[0] ** 2 + y[1] ** 2) - 1) /
+                                  (scipy.sqrt(y[0] ** 2 + y[1] ** 2)),
+                                  -y[1] * k * (scipy.sqrt(y[0] ** 2 + y[1] ** 2) - 1) /
+                                  (scipy.sqrt(y[0] ** 2 + y[1] ** 2)) - 1])
+            return yprime
+
+    phi = 2 * scipy.pi - 0.3
+    x = scipy.cos(phi)
+    y = scipy.sin(phi)
+    y0 = scipy.array([x, y, 0, 0])
+    t0 = 0
+
+    mod = Explicit_Problem(pend, y0, t0)
+
+    sim = CVode(mod)
+    t, y = sim.simulate(10)
+    sim.plot(mask=[1, 1, 0, 0])
+    mpl.show()
+
+
     unittest.main()
     # appropriate initial values: 0.9, 0.1, 0, 0
 #    pend_mod=Explicit_Problem(pend, y0=np.array([0.9, 0.1, 0, 0]))
