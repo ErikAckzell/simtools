@@ -5,15 +5,16 @@ import matplotlib.pyplot as mpl
 import scipy.linalg as SL
 from scipy.optimize import fsolve
 import scipy
-# from assimulo.solvers import CVode
+import unittest
+#from assimulo.solvers import CVode
 
 class BDF(Explicit_ODE):
     """
     BDF methods
     """
     tol=1.e-8
-    maxit=100
-    maxsteps=500
+    maxit=1000
+    maxsteps=5000
 
     def __init__(self, problem, order=3, jacobian=None):
         Explicit_ODE.__init__(self, problem) #Calls the base class
@@ -34,6 +35,8 @@ class BDF(Explicit_ODE):
             self.step_BDF = self.step_BDF3
         elif order == 4:
             self.step_BDF = self.step_BDF4
+        else:
+            raise ValueError('Only BDF methods of order 2-4 are implemented')
 
     def _set_h(self,h):
             self.options["h"] = float(h)
@@ -117,7 +120,7 @@ class BDF(Explicit_ODE):
         alpha_0*y_np1+alpha_1*y_n+alpha_2*y_nm1 + alpha_3*y_nm2 = h*f(t_np1,y_np1)
         alpha = [11/6, -3, 3/2, -1/3]
         """
-        alpha = [11/6, -3, 3/2, -1/3]
+        alpha = [11./6., -3., 3./2., -1./3.]
         f=self.problem.rhs
 
         t_np1 = tres[-1] + h
@@ -181,7 +184,7 @@ def pend(t,y):
     return np.array([y[1],-gl*np.sin(y[0])])
 
 #Define another Assimulo problem
-def pend(t, y, k=0):
+def pend(t, y, k=1):
     """
     This is the right hand side function of the differential equation
     describing the elastic pendulum
@@ -196,14 +199,42 @@ def pend(t, y, k=0):
                           (scipy.sqrt(y[0] ** 2 + y[1] ** 2)) - 1])
     return yprime
 
+class BDFtests(unittest.TestCase):
+    def setUp(self):
+        self.y0 = scipy.array([0.9, 0.1, 0, 0])
+        self.klist = [0] + [10 ** i for i in range(0, 4)]
 
-#TODO: what are appropriate initial values?
-pend_mod=Explicit_Problem(pend, y0=np.array([2.*np.pi,1., 0, 0]))
+    def get_pendulum_function(self, k):
+        def pend(t, y, k=1):
+            """
+            This is the right hand side function of the differential equation
+            describing the elastic pendulum
+            y: 1x4 array
+            k: float
+            """
+            yprime = scipy.array([y[2],
+                                  y[3],
+                                  -y[0] * k * (scipy.sqrt(y[0] ** 2 + y[1] ** 2) - 1) /
+                                  (scipy.sqrt(y[0] ** 2 + y[1] ** 2)),
+                                  -y[1] * k * (scipy.sqrt(y[0] ** 2 + y[1] ** 2) - 1) /
+                                  (scipy.sqrt(y[0] ** 2 + y[1] ** 2)) - 1])
+            return yprime
+        return pend
+
+    def test_order_3_varying_k(self):
+        for k in self.klist:
+            pass
+
+
+
+
+# appropriate initial values: 0.9, 0.1, 0, 0
+pend_mod=Explicit_Problem(pend, y0=np.array([0.9, 0.1, 0, 0]))
 #pend_mod=Explicit_Problem(pend, y0=np.array([2.*np.pi,1.]))
 pend_mod.name='Nonlinear Pendulum'
 
 #Define an explicit solver
 exp_sim = BDF(pend_mod, order=3) #Create a BDF solver
-t, y = exp_sim.simulate(2)
+t, y = exp_sim.simulate(10)
 exp_sim.plot(mask=[1, 1, 0, 0])
 mpl.show()
