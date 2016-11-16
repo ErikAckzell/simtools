@@ -1,6 +1,8 @@
 """ Module for all the different available step functions.
 """
 
+from scipy.optimize import fsolve
+
 def BDF4(self, tres, yres, h):
     """
     BDF-4 with Zero order predictor, using scipy.optimize.fsolve

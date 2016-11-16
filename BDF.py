@@ -3,7 +3,6 @@ from assimulo.ode import *
 import numpy as np
 import matplotlib.pyplot as mpl
 import scipy.linalg as SL
-from scipy.optimize import fsolve
 import scipy
 import unittest
 from assimulo.solvers import CVode
@@ -69,10 +68,10 @@ class BDF(Explicit_ODE):
             self.statistics["nsteps"] += 1
 
             if i < self.order:  # initial steps
-                t_np1, y_np1 = self.step_EE(t, y, h, floatflag=True)
+                t_np1, y_np1 = step.EE(self, t, y, h, floatflag=True)
                 y = y_np1
             else:
-                t_np1, y_np1 = self.step_BDF(tres[-self.order:],
+                t_np1, y_np1 = self.step_BDF(self, tres[-self.order:],
                                              yres[-self.order:],
                                              h)
             tres.append(t_np1)
