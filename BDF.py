@@ -13,24 +13,25 @@ class BDF(Explicit_ODE):
     """
     BDF methods
     """
-    tol=1.e-8
-    maxit=1000
-    maxsteps=5000
+    tol = 1.e-8
+    maxit = 1000
+    maxsteps = 5000
 
-    def __init__(self, problem, order=3, jacobian=None):
+    def __init__(self, problem, order, corrector='Newton'):
         Explicit_ODE.__init__(self, problem) #Calls the base class
 
-        #Solver options
+        # Solver options
         self.options["h"] = 0.01
 
-        #Statistics
+        # Statistics
         self.statistics["nsteps"] = 0
         self.statistics["nfcns"] = 0
 
-        self.jac = jacobian
         self.order = order
 
-        if order == 2:
+        if order == 2 and corrector == 'FPI':
+            self.step_BDF = self.step_BDF2_FPI
+        elif order == 2:
             self.step_BDF = self.step_BDF2
         elif order == 3:
             self.step_BDF = self.step_BDF3
@@ -39,22 +40,22 @@ class BDF(Explicit_ODE):
         else:
             raise ValueError('Only BDF methods of order 2-4 are implemented')
 
-    def _set_h(self,h):
+    def _set_h(self, h):
             self.options["h"] = float(h)
 
     def _get_h(self):
         return self.options["h"]
 
-    h=property(_get_h,_set_h)
+    h = property(_get_h, _set_h)
 
     def integrate(self, t, y, tf, opts):
         """
-        _integrates (t,y) values until t > tf
+        _integrates (t, y) values until t > tf
         """
         h = self.options["h"]
         h = min(h, abs(tf-t))
 
-        #Lists for storing the result
+        # Lists for storing the result
         tres = []
         yres = []
 
@@ -63,19 +64,20 @@ class BDF(Explicit_ODE):
                 break
             self.statistics["nsteps"] += 1
 
-            if i<self.order:  # initial steps
+            if i < self.order:  # initial steps
                 t_np1, y_np1 = self.step_EE(t, y, h)
                 y = y_np1
             else:
                 t_np1, y_np1 = self.step_BDF(tres[-self.order:],
-                                              yres[-self.order:],
-                                              h)
+                                             yres[-self.order:],
+                                             h)
             tres.append(t_np1)
             yres.append(y_np1.copy())
             t = t_np1
-            h=min(self.h,np.abs(tf-t))
+            h = min(self.h, np.abs(tf - t))
         else:
-            raise Explicit_ODE_Exception('Final time not reached within maximum number of steps')
+            raise Explicit_ODE_Exception(
+                    'Final time not reached within maximum number of steps')
 
         return ID_PY_OK, tres, yres
 
@@ -86,7 +88,35 @@ class BDF(Explicit_ODE):
         self.statistics["nfcns"] += 1
 
         f = self.problem.rhs
-        return t + h, y + h*f(t, y)
+        return t + h, y + h * f(t, y)
+
+    def step_BDF2_FPI(self, tres, yres, h):
+        """
+        BDF-2 with Zero order predictor, using FPI
+
+        alpha_0*y_np1+alpha_1*y_n+alpha_2*y_nm1=h f(t_np1,y_np1)
+        alpha=[3/2,-2,1/2]
+        """
+        alpha = [3./2., -2., 1./2]
+        f = self.problem.rhs
+
+        y_n, y_nm1 = yres[-2:]
+
+        t_np1 = tres[-1] + h
+
+        y_np1_i=y_n
+
+        y = yres[-1]
+
+        for i in range(self.maxit):
+            self.statistics["nfcns"] += 1
+            y_np1=(-(alpha[1]*yres[-1]+alpha[2]*yres[-2])+h*f(t_np1,y))/alpha[0]
+            if SL.norm(y - y_np1) < self.tol:
+                return t_np1, y_np1
+            y = y_np1
+        else:
+            raise Explicit_ODE_Exception('Corrector could not converge within % iterations'%i)
+
 
     def step_BDF2(self, tres, yres, h):
         """
@@ -95,8 +125,8 @@ class BDF(Explicit_ODE):
         alpha_0*y_np1+alpha_1*y_n+alpha_2*y_nm1=h f(t_np1,y_np1)
         alpha=[3/2,-2,1/2]
         """
-        alpha=[3./2.,-2.,1./2]
-        f=self.problem.rhs
+        alpha = [3./2., -2., 1./2]
+        f = self.problem.rhs
 
         t_np1 = tres[-1] + h
         result = fsolve(lambda y: alpha[0] * y +
@@ -177,28 +207,6 @@ class BDF(Explicit_ODE):
         self.log_message(' Solver            : BDF{}'.format(self.order),                     verbose)
         self.log_message(' Solver type       : Fixed step\n',                      verbose)
 
-#TODO: remove first pend function.
-def pend(t,y):
-    # came with the example
-    #g=9.81    l=0.7134354980239037
-    gl=13.7503671
-    return np.array([y[1],-gl*np.sin(y[0])])
-
-#Define another Assimulo problem
-def pend(t, y, k=1):
-    """
-    This is the right hand side function of the differential equation
-    describing the elastic pendulum
-    y: 1x4 array
-    k: float
-    """
-    yprime = scipy.array([y[2],
-                          y[3],
-                          -y[0] * k * (scipy.sqrt(y[0] ** 2 + y[1] ** 2) - 1) /
-                          (scipy.sqrt(y[0] ** 2 + y[1] ** 2)),
-                          -y[1] * k * (scipy.sqrt(y[0] ** 2 + y[1] ** 2) - 1) /
-                          (scipy.sqrt(y[0] ** 2 + y[1] ** 2)) - 1])
-    return yprime
 
 class BDFtests(unittest.TestCase):
     def setUp(self):
@@ -214,12 +222,13 @@ class BDFtests(unittest.TestCase):
             y: 1x4 array
             k: float
             """
-            yprime = scipy.array([y[2],
-                                  y[3],
-                                  -y[0] * k * (scipy.sqrt(y[0] ** 2 + y[1] ** 2) - 1) /
-                                  (scipy.sqrt(y[0] ** 2 + y[1] ** 2)),
-                                  -y[1] * k * (scipy.sqrt(y[0] ** 2 + y[1] ** 2) - 1) /
-                                  (scipy.sqrt(y[0] ** 2 + y[1] ** 2)) - 1])
+            yprime = scipy.array(
+                         [y[2],
+                          y[3],
+                          -y[0] * k * (scipy.sqrt(y[0] ** 2 + y[1] ** 2) - 1) /
+                          (scipy.sqrt(y[0] ** 2 + y[1] ** 2)),
+                          -y[1] * k * (scipy.sqrt(y[0] ** 2 + y[1] ** 2) - 1) /
+                          (scipy.sqrt(y[0] ** 2 + y[1] ** 2)) - 1])
             return yprime
         return pend
 
@@ -267,6 +276,23 @@ class BDFtests(unittest.TestCase):
             exp_sim.plot(mask=[1, 1, 0, 0])
             mpl.show()
 
+    def test_order_2_FPI(self):
+        k = 100
+        phi = 2 * scipy.pi - 0.3
+        x = scipy.cos(phi)
+        y = scipy.sin(phi)
+        order = 2
+        corrector = 'FPI'
+        pend = self.get_pendulum_rhs(k)
+        y0 = scipy.array([x, y, 0, 0])
+        pend_mod = Explicit_Problem(pend, y0=y0)
+        pend_mod.name = \
+         'Nonlinear Pendulum, FPI, k = {k}, init = {init}'.format(k=k, init=y0)
+        exp_sim = BDF(pend_mod, order=order, corrector=corrector)
+        t, y = exp_sim.simulate(10)
+        exp_sim.plot(mask=[1, 1, 0, 0])
+        mpl.show()
+
 
 
 if __name__ == '__main__':
@@ -278,12 +304,13 @@ if __name__ == '__main__':
             y: 1x4 array
             k: float
             """
-            yprime = scipy.array([y[2],
-                                  y[3],
-                                  -y[0] * k * (scipy.sqrt(y[0] ** 2 + y[1] ** 2) - 1) /
-                                  (scipy.sqrt(y[0] ** 2 + y[1] ** 2)),
-                                  -y[1] * k * (scipy.sqrt(y[0] ** 2 + y[1] ** 2) - 1) /
-                                  (scipy.sqrt(y[0] ** 2 + y[1] ** 2)) - 1])
+            yprime = scipy.array(
+                         [y[2],
+                          y[3],
+                          -y[0] * k * (scipy.sqrt(y[0] ** 2 + y[1] ** 2) - 1) /
+                          (scipy.sqrt(y[0] ** 2 + y[1] ** 2)),
+                          -y[1] * k * (scipy.sqrt(y[0] ** 2 + y[1] ** 2) - 1) /
+                          (scipy.sqrt(y[0] ** 2 + y[1] ** 2)) - 1])
             return yprime
 
     phi = 2 * scipy.pi - 0.3
@@ -299,15 +326,7 @@ if __name__ == '__main__':
     sim.plot(mask=[1, 1, 0, 0])
     mpl.show()
 
+    ##----
+
 
     unittest.main()
-    # appropriate initial values: 0.9, 0.1, 0, 0
-#    pend_mod=Explicit_Problem(pend, y0=np.array([0.9, 0.1, 0, 0]))
-    #pend_mod=Explicit_Problem(pend, y0=np.array([2.*np.pi,1.]))
-#    pend_mod.name='Nonlinear Pendulum'
-
-    #Define an explicit solver
-#    exp_sim = BDF(pend_mod, order=3) #Create a BDF solver
-#    t, y = exp_sim.simulate(10)
-#    exp_sim.plot(mask=[1, 1, 0, 0])
-#    mpl.show()
