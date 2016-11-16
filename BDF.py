@@ -230,29 +230,130 @@ class BDFtests(unittest.TestCase):
 #            exp_sim.plot(mask=[1, 1, 0, 0])
 #            mpl.show()
 
-    def test_excited_pendulum_order_4_k_100(self):
-        k = 100
-        phi = 2 * scipy.pi - 0.3
-        x = scipy.cos(phi)
-        y = scipy.sin(phi)
-        order = 4
-        pend_func = pend_rhs_function(k)
-        initial_values = scipy.array([[x, y, 0, 0],
-                                      [x+0.01, y, 0, 0],
-                                      [x+0.1, y, 0, 0],
-                                      [x+0.5, y, 0, 0]])
-#                                      [x+0.99, y, 0, 0],
-#                                      [x+1.0, y, 0, 0]])
-        for y0 in initial_values:
-            for k in self.klist:
-                pend_func = pend_rhs_function(k)
-                pend_mod = Explicit_Problem(pend_func, y0=y0)
-                pend_mod.name = \
-                  'Nonlinear Pendulum, k = {k}, init = {init}'.format(k=k, init=y0)
-                exp_sim = BDF(pend_mod, order=order) #Create a BDF solver
-                t, y = exp_sim.simulate(10)
-                exp_sim.plot(mask=[1, 1, 0, 0])
-                mpl.show()
+        # Iterate over all combinations of the changing variables listed above.
+        for k_value in test_case_group.k_list:
+            for initial_values in test_case_group.init_values_list:
+                for bdf_order in test_case_group.order_list:
+                    # Gather missing data.
+                    name = test_case_group.name
+                    sim_tmax = test_case_group.sim_tmax
+
+                    # Construct information string.
+                    fmt_string = ("Running simulation for k = {} "+
+                                 "\n     initial_values: {}"+
+                                 "\n     bdf_order: {}\n")
+
+                    INFO(fmt_string.format(k_value,
+                                           initial_values,
+                                           bdf_order))
+
+                    # Create new single test case.
+                    case = SingleTestCase(name,
+                                          bdf_order,
+                                          sim_tmax,
+                                          k_value,
+                                          initial_values)
+                    # Toggle plotting.
+                    case.plot = plot
+                    # Run the single test case.
+                    run_single_case(case)
+                    SEPARATE_OUTPUT()
+
+        SEPARATE_OUTPUT("\n\n[!] #### Group done, continuing with next group of tests.")
+
+
+    def run_single_case(test_case):
+        """ Run a single test case. """
+        # Get method defining right hand side of pendulum equation.
+        pend_func = pend_rhs_function(test_case.k)
+        # Generate the model based on the function fetched above.
+        pend_mod = Explicit_Problem(pend_func, y0=test_case.init)
+        pend_mod.name = test_case.name
+        # Create BDF solver.
+        exp_sim = BDF(pend_mod, order=test_case.order)
+        # Run the simulation.
+        t, y = exp_sim.simulate(test_case.sim_tmax)
+        # Should we plot?
+        if test_case.plot:
+            # Plot the result.
+            exp_sim.plot(mask=[1, 1, 0, 0])
+            # Show the plot.
+            mpl.show()
+
+
+    class GroupTestCase():
+        """ Class representing a group of BDF test cases. """
+        def __init__(self, name, order_list, sim_tmax, k_list, init_values_list):
+            self.name = name
+            self.order_list = order_list
+            self.sim_tmax= sim_tmax
+            self.k_list = k_list
+            self.init_values_list = init_values_list
+            self.plot = True
+
+
+    class SingleTestCase():
+        """ Class representing a single BDF test case. """
+        def __init__(self, name, order, sim_tmax, k, init):
+            self.name = name
+            self.order = order
+            self.sim_tmax = sim_tmax
+            self.k = k
+            self.init = init
+            self.plot = True
+
+
+    def dict_2_group_case(dictionary):
+        """ Turn data in dictionary to Test Case object. """
+        return GroupTestCase(dictionary['name'],
+                             dictionary['order_list'],
+                             dictionary['sim_tmax'],
+                             dictionary['k_list'],
+                             dictionary['init_value_list'])
+
+    # Test order 4 BDF with varying k's.
+    ord_4_var_k = {
+        'name': default.name,
+        'order_list': [4],
+        'sim_tmax': 5,
+        'k_list': default.k_list,
+        'init_value_list': default.init_list,
+        }
+
+    # Test varying order with k = 1000
+    var_ord_k_1000 = {
+        'name': default.name,
+        'order_list': default.order_list,
+        'sim_tmax': 10,
+        'k_list': default.k_list,
+        'init_value_list': default.init_list,
+        }
+
+    # Test excited pendulum for different initial values with k = 100.
+    excited_pend_var_init = {
+        'name': default.name,
+        'order_list': [4],
+        'sim_tmax': 10,
+        'k_list': [100],
+        'init_value_list': [
+            [default.x, default.y, 0, 0],
+            [default.x+0.01, default.y, 0, 0],
+            [default.x+0.1, default.y, 0, 0],
+            [default.x+0.5, default.y, 0, 0],
+            ]
+    }
+
+    test_cases = [
+            ord_4_var_k,
+            var_ord_k_1000,
+            excited_pend_var_init,
+            ]
+
+    for case_dict in test_cases:
+        run_permutations(dict_2_group_case(case_dict), plot)
+
+
+#class BDFtests(unittest.TestCase):
 
 #    def test_order_2_FPI(self):
 #        k = 100
