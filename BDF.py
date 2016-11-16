@@ -142,6 +142,26 @@ class BDF(Explicit_ODE):
         self.log_message(self.get_statistics(), verbose)
 
 
+def pend_rhs_function(k):
+    """
+    This is the right hand side function of the differential equation
+    describing the elastic pendulum. High k => stiffer pendulum
+    y: 1x4 array
+    k: float
+    """
+
+    def pendulum_eq_rhs(t, y, k=k):
+        yprime = scipy.array(
+                     [y[2],
+                      y[3],
+                      -y[0] * k * (scipy.sqrt(y[0] ** 2 + y[1] ** 2) - 1) /
+                      (scipy.sqrt(y[0] ** 2 + y[1] ** 2)),
+                      -y[1] * k * (scipy.sqrt(y[0] ** 2 + y[1] ** 2) - 1) /
+                      (scipy.sqrt(y[0] ** 2 + y[1] ** 2)) - 1])
+        return yprime
+    return pendulum_eq_rhs
+
+
 class BDFtests(unittest.TestCase):
     def setUp(self):
         phi = 2 * scipy.pi - 0.3
@@ -152,28 +172,13 @@ class BDFtests(unittest.TestCase):
         self.orderlist = [2, 3, 4]
 
     def get_pendulum_rhs(self, k):
-        def pend(t, y, k=k):
-            """
-            This is the right hand side function of the differential equation
-            describing the elastic pendulum. High k => stiffer pendulum
-            y: 1x4 array
-            k: float
-            """
-            yprime = scipy.array(
-                         [y[2],
-                          y[3],
-                          -y[0] * k * (scipy.sqrt(y[0] ** 2 + y[1] ** 2) - 1) /
-                          (scipy.sqrt(y[0] ** 2 + y[1] ** 2)),
-                          -y[1] * k * (scipy.sqrt(y[0] ** 2 + y[1] ** 2) - 1) /
-                          (scipy.sqrt(y[0] ** 2 + y[1] ** 2)) - 1])
-            return yprime
         return pend
 
 #    def test_order_4_varying_k(self):
 #        order = 4
 #        for k in self.klist:
-#            pend = self.get_pendulum_rhs(k)
-#            pend_mod = Explicit_Problem(pend, y0=self.y0)
+#            pend_func = pend_rhs_function(k)
+#            pend_mod = Explicit_Problem(pend_func, y0=self.y0)
 #            pend_mod.name = 'Nonlinear Pendulum, k = {}'.format(k)
 #            exp_sim = BDF(pend_mod, order=order) #Create a BDF solver
 #            t, y = exp_sim.simulate(5)
@@ -182,9 +187,9 @@ class BDFtests(unittest.TestCase):
 #
 #    def test_varying_order_k_1000(self):
 #        k = 1000
-#        pend = self.get_pendulum_rhs(k)
+#        pend_func = pend_rhs_function(k)
 #        for order in self.orderlist:
-#            pend_mod = Explicit_Problem(pend, y0=self.y0)
+#            pend_mod = Explicit_Problem(pend_func, y0=self.y0)
 #            pend_mod.name = 'Nonlinear Pendulum, k = {}'.format(k)
 #            exp_sim = BDF(pend_mod, order=order) #Create a BDF solver
 #            t, y = exp_sim.simulate(10)
@@ -197,7 +202,7 @@ class BDFtests(unittest.TestCase):
         x = scipy.cos(phi)
         y = scipy.sin(phi)
         order = 4
-        pend = self.get_pendulum_rhs(k)
+        pend_func = pend_rhs_function(k)
         initial_values = scipy.array([[x, y, 0, 0],
                                       [x+0.01, y, 0, 0],
                                       [x+0.1, y, 0, 0],
@@ -206,8 +211,8 @@ class BDFtests(unittest.TestCase):
 #                                      [x+1.0, y, 0, 0]])
         for y0 in initial_values:
             for k in self.klist:
-                pend = self.get_pendulum_rhs(k)
-                pend_mod = Explicit_Problem(pend, y0=y0)
+                pend_func = pend_rhs_function(k)
+                pend_mod = Explicit_Problem(pend_func, y0=y0)
                 pend_mod.name = \
                   'Nonlinear Pendulum, k = {k}, init = {init}'.format(k=k, init=y0)
                 exp_sim = BDF(pend_mod, order=order) #Create a BDF solver
@@ -219,8 +224,8 @@ class BDFtests(unittest.TestCase):
 #        k = 100
 #        order = 2
 #        corrector = 'FPI'
-#        pend = self.get_pendulum_rhs(k)
-#        pend_mod = Explicit_Problem(pend, y0=self.y0)
+#        pend_func = pend_rhs_function(k)
+#        pend_mod = Explicit_Problem(pend_func, y0=self.y0)
 #        pend_mod.name = \
 #         'Nonlinear Pendulum, FPI, k = {k}, init = {init}'.format(k=k, init=y0)
 #        exp_sim = BDF(pend_mod, order=order, corrector=corrector)
@@ -231,8 +236,8 @@ class BDFtests(unittest.TestCase):
 #    def test_EE_k_influence(self):
 #        order = 1
 #        for k in self.klist:
-#            pend = self.get_pendulum_rhs(k)
-#            pend_mod = Explicit_Problem(pend, y0=self.y0)
+#            pend_func = pend_rhs_function(k)
+#            pend_mod = Explicit_Problem(pend_func, y0=self.y0)
 #            pend_mod.name = \
 #             'Nonlinear Pendulum, EE, k = {k}, init = {init}'.format(k=k,
 #                                                                     init=self.y0)
@@ -248,7 +253,7 @@ class BDFtests(unittest.TestCase):
 #        y = scipy.sin(phi)
 #        t0 = 0
 #        y0 = scipy.array([x+0.2, y, 0, 0])
-#        pend = self.get_pendulum_rhs(k)
+#        pend_func = pend_rhs_function(k)
 #        maxordlist = list(range(0, 7, 2))
 #        atollist = [scipy.array([2, 1, 2, 2]) * 10 ** (-i)
 #                    for i in range(0, 7, 2)]
@@ -256,7 +261,7 @@ class BDFtests(unittest.TestCase):
 #        for maxord in maxordlist:
 #            for atol in atollist:
 #                for rtol in rtollist:
-#                    mod = Explicit_Problem(pend, y0, t0)
+#                    mod = Explicit_Problem(pend_func, y0, t0)
 #                    mod.name = \
 #                     'Nonlinear Pendulum, CVode, k={k}, stretched, \n\
 #                      maxord={maxord}, atol={atol}, rtol={rtol}'.format(k=k,
@@ -276,8 +281,8 @@ class BDFtests(unittest.TestCase):
 #        t0 = 0
 #        y0 = scipy.array([x+0.2, y, 0, 0])
 #        for k in self.klist:
-#            pend = self.get_pendulum_rhs(k)
-#            mod = Explicit_Problem(pend, y0, t0)
+#            pend_func = pend_rhs_function(k)
+#            mod = Explicit_Problem(pend_func, y0, t0)
 #            mod.name = \
 #             'Nonlinear Pendulum, CVode, k={k}, stretched'.format(k=k)
 #            sim = CVode(mod)
@@ -288,29 +293,13 @@ class BDFtests(unittest.TestCase):
 def task_1(k, x_start_offset):
     """ Method that performs and plots the first task from project 1. """
 
-    def pend(t, y, k):
-            """
-            This is the right hand side function of the differential equation
-            describing the elastic pendulum
-            y: 1x4 array
-            k: float
-            """
-            yprime = scipy.array(
-                         [y[2],
-                          y[3],
-                          -y[0] * k * (scipy.sqrt(y[0] ** 2 + y[1] ** 2) - 1) /
-                          (scipy.sqrt(y[0] ** 2 + y[1] ** 2)),
-                          -y[1] * k * (scipy.sqrt(y[0] ** 2 + y[1] ** 2) - 1) /
-                          (scipy.sqrt(y[0] ** 2 + y[1] ** 2)) - 1])
-            return yprime
-
     phi = 2 * scipy.pi - 0.3
     x = scipy.cos(phi)
     y = scipy.sin(phi)
     y0 = scipy.array([x + x_start_offset, y, 0, 0])
     t0 = 0
 
-    mod = Explicit_Problem(pend, y0, t0, k)
+    mod = Explicit_Problem(pend_rhs_function(k), y0, t0, k)
 
     sim = CVode(mod)
     t, y = sim.simulate(10)
