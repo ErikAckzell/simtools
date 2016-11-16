@@ -294,7 +294,7 @@ def run_simulations(plot=True):
         'name': default.name,
         'order_list': default.order_list,
         'sim_tmax': 10,
-        'k_list': default.k_list,
+        'k_list': [1000],
         'init_value_list': default.init_list,
         }
 
