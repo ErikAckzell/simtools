@@ -169,66 +169,35 @@ class DefaultData(object):
         self.phi = 2 * scipy.pi - 0.3
         self.x = scipy.cos(self.phi)
         self.y = scipy.sin(self.phi)
-        self.y0 = scipy.array([self.x, self.y, 0, 0])
+        self.init_list = [scipy.array([self.x, self.y, 0, 0])]
         self.k = 100
-        self.klist = [0] + [10 ** i for i in range(0, 4)]
-        self.orderlist = [2, 3, 4]
+        self.k_list = [0] + [10 ** i for i in range(0, 4)]
+        self.order_list = [2, 3, 4]
+        self.name = "Nonlinear Pendulum"
 
 
-def run_permutations():
+def run_simulations(plot=True):
+    """ Method that runs all the defined simulations. """
 
     # Create default data.
-    dd = DefaultData()
-    # Set order of BDF.
-    bdf_order = 4
-    # Set maximum time for simulation.
-    sim_tmax = 5
+    default = DefaultData()
 
-    def run_single_plot(bdf_order, sim_tmax):
-        # Get method defining right hand side of pendulum equation.
-        pend_func = pend_rhs_function(dd.k)
-        # Generate the model based on the function fetched above.
-        pend_mod = Explicit_Problem(pend_func, y0=dd.y0)
-        pend_mod.name = 'Nonlinear Pendulum, k = {}'.format(dd.k)
-        # Create BDF solver.
-        exp_sim = BDF(pend_mod, order=bdf_order)
-        # Run the simulation.
-        t, y = exp_sim.simulate(sim_tmax)
-        # Plot the result.
-        exp_sim.plot(mask=[1, 1, 0, 0])
-        # Show the plot.
-        mpl.show()
-
-    run_single_plot(bdf_order, sim_tmax)
+    def INFO(string):
+        """ Function that prints information to console."""
+        print("[i]: {}".format(string))
 
 
-class BDFtests(unittest.TestCase):
-    def setUp(self):
-        phi = 2 * scipy.pi - 0.3
-        self.y0 = scipy.array([x, y, 0, 0])
-        self.klist = [0] + [10 ** i for i in range(0, 4)]
+    def SEPARATE_OUTPUT(string=""):
+        """ Separate output sections from each other. """
+        print("{}\n\n".format(string))
 
-#    def test_order_4_varying_k(self):
-#        order = 4
-#        for k in self.klist:
-#            pend_func = pend_rhs_function(k)
-#            pend_mod = Explicit_Problem(pend_func, y0=self.y0)
-#            pend_mod.name = 'Nonlinear Pendulum, k = {}'.format(k)
-#            exp_sim = BDF(pend_mod, order=order) #Create a BDF solver
-#            t, y = exp_sim.simulate(5)
-#            exp_sim.plot(mask=[1, 1, 0, 0])
-#            mpl.show()
-#
-#    def test_varying_order_k_1000(self):
-#        k = 1000
-#        pend_func = pend_rhs_function(k)
-#        for order in self.orderlist:
-#            pend_mod = Explicit_Problem(pend_func, y0=self.y0)
-#            pend_mod.name = 'Nonlinear Pendulum, k = {}'.format(k)
-#            exp_sim = BDF(pend_mod, order=order) #Create a BDF solver
-#            t, y = exp_sim.simulate(10)
-#            exp_sim.plot(mask=[1, 1, 0, 0])
-#            mpl.show()
+
+    def run_permutations(test_case_group, plot):
+        """ Possible variations:
+                - k-values.
+                - initial values.
+                - bdf order.
+        """
 
         # Iterate over all combinations of the changing variables listed above.
         for k_value in test_case_group.k_list:
@@ -452,5 +421,4 @@ if __name__ == '__main__':
     task_1_start_offset = 0.1
 #    task_1(task_1_k, task_1_start_offset)
     ##----
-#    unittest.main()
-    run_permutations()
+    run_simulations(plot=False)
