@@ -285,39 +285,43 @@ class BDFtests(unittest.TestCase):
 #            sim.plot(mask=[1, 1, 0, 0])
 #            mpl.show()
 
+def task_1(k, x_start_offset):
+    """ Method that performs and plots the first task from project 1. """
+
+    def pend(t, y, k):
+            """
+            This is the right hand side function of the differential equation
+            describing the elastic pendulum
+            y: 1x4 array
+            k: float
+            """
+            yprime = scipy.array(
+                         [y[2],
+                          y[3],
+                          -y[0] * k * (scipy.sqrt(y[0] ** 2 + y[1] ** 2) - 1) /
+                          (scipy.sqrt(y[0] ** 2 + y[1] ** 2)),
+                          -y[1] * k * (scipy.sqrt(y[0] ** 2 + y[1] ** 2) - 1) /
+                          (scipy.sqrt(y[0] ** 2 + y[1] ** 2)) - 1])
+            return yprime
+
+    phi = 2 * scipy.pi - 0.3
+    x = scipy.cos(phi)
+    y = scipy.sin(phi)
+    y0 = scipy.array([x + x_start_offset, y, 0, 0])
+    t0 = 0
+
+    mod = Explicit_Problem(pend, y0, t0, k)
+
+    sim = CVode(mod)
+    t, y = sim.simulate(10)
+    sim.plot(mask=[1, 1, 0, 0])
+    mpl.show()
+
 
 if __name__ == '__main__':
     ##---- TASK 1 ----##
-#    def pend(t, y, k=10):
-#            """
-#            This is the right hand side function of the differential equation
-#            describing the elastic pendulum
-#            y: 1x4 array
-#            k: float
-#            """
-#            yprime = scipy.array(
-#                         [y[2],
-#                          y[3],
-#                          -y[0] * k * (scipy.sqrt(y[0] ** 2 + y[1] ** 2) - 1) /
-#                          (scipy.sqrt(y[0] ** 2 + y[1] ** 2)),
-#                          -y[1] * k * (scipy.sqrt(y[0] ** 2 + y[1] ** 2) - 1) /
-#                          (scipy.sqrt(y[0] ** 2 + y[1] ** 2)) - 1])
-#            return yprime
-#
-#    phi = 2 * scipy.pi - 0.3
-#    x = scipy.cos(phi)
-#    y = scipy.sin(phi)
-#    y0 = scipy.array([x + 0.1, y, 0, 0])
-#    t0 = 0
-#
-#    mod = Explicit_Problem(pend, y0, t0)
-#
-#    sim = CVode(mod)
-#    t, y = sim.simulate(10)
-#    sim.plot(mask=[1, 1, 0, 0])
-#    mpl.show()
-
+    task_1_k = 100
+    task_1_start_offset = 0.1
+    task_1(task_1_k, task_1_start_offset)
     ##----
-
-
-    unittest.main()
+#    unittest.main()
