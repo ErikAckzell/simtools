@@ -162,17 +162,51 @@ def pend_rhs_function(k):
     return pendulum_eq_rhs
 
 
-class BDFtests(unittest.TestCase):
-    def setUp(self):
-        phi = 2 * scipy.pi - 0.3
-        x = scipy.cos(phi)
-        y = scipy.sin(phi)
-        self.y0 = scipy.array([x, y, 0, 0])
+class DefaultData(object):
+    """ Class that holds the default data for the tests. """
+
+    def __init__(self):
+        self.phi = 2 * scipy.pi - 0.3
+        self.x = scipy.cos(self.phi)
+        self.y = scipy.sin(self.phi)
+        self.y0 = scipy.array([self.x, self.y, 0, 0])
+        self.k = 100
         self.klist = [0] + [10 ** i for i in range(0, 4)]
         self.orderlist = [2, 3, 4]
 
-    def get_pendulum_rhs(self, k):
-        return pend
+
+def run_permutations():
+
+    # Create default data.
+    dd = DefaultData()
+    # Set order of BDF.
+    bdf_order = 4
+    # Set maximum time for simulation.
+    sim_tmax = 5
+
+    def run_single_plot(bdf_order, sim_tmax):
+        # Get method defining right hand side of pendulum equation.
+        pend_func = pend_rhs_function(dd.k)
+        # Generate the model based on the function fetched above.
+        pend_mod = Explicit_Problem(pend_func, y0=dd.y0)
+        pend_mod.name = 'Nonlinear Pendulum, k = {}'.format(dd.k)
+        # Create BDF solver.
+        exp_sim = BDF(pend_mod, order=bdf_order)
+        # Run the simulation.
+        t, y = exp_sim.simulate(sim_tmax)
+        # Plot the result.
+        exp_sim.plot(mask=[1, 1, 0, 0])
+        # Show the plot.
+        mpl.show()
+
+    run_single_plot(bdf_order, sim_tmax)
+
+
+class BDFtests(unittest.TestCase):
+    def setUp(self):
+        phi = 2 * scipy.pi - 0.3
+        self.y0 = scipy.array([x, y, 0, 0])
+        self.klist = [0] + [10 ** i for i in range(0, 4)]
 
 #    def test_order_4_varying_k(self):
 #        order = 4
@@ -246,6 +280,10 @@ class BDFtests(unittest.TestCase):
 #            exp_sim.plot(mask=[1, 1, 0, 0])
 #            mpl.show()
 #
+# ========================================
+#  CVODE
+# ========================================
+#
 #    def test_CVode_method_params_influence(self):
 #        k = 100
 #        phi = 2 * scipy.pi - 0.3
@@ -311,6 +349,7 @@ if __name__ == '__main__':
     ##---- TASK 1 ----##
     task_1_k = 100
     task_1_start_offset = 0.1
-    task_1(task_1_k, task_1_start_offset)
+#    task_1(task_1_k, task_1_start_offset)
     ##----
 #    unittest.main()
+    run_permutations()
