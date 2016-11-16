@@ -85,17 +85,61 @@ class BDF(Explicit_ODE):
         return ID_PY_OK, tres, yres
 
 
+    def get_statistics(self):
+        """ Gather statistics and return them as a string. """
+
+        # Gather necessary information.
+        name = self.problem.name
+        stepsize = self.options["h"]
+        num_steps = str(self.statistics['nsteps'])
+        num_func_eval = str(self.statistics['nfcns'])
+        order = self.order
+
+        def heading(string):
+            """ Return if the string is a heading. """
+            return not string.startswith(' ')
+
+        def get_padded_format(string):
+            """ Return dynamically padded format string. """
+            if heading(string): # No padding on headings.
+                return string
+            # Only count length to the first ':'.
+            current_len = len(string.split(':')[0])
+            len_diff = max_len - current_len
+            # Only add padding in front of the first ':'.
+            string = string.replace(':', "{}:".format(len_diff*' '), 1)
+            return string
+
+        message_primitives = [
+                    ("Final Run Statistics: {}", name),
+                    ("  Step-length: {}", stepsize),
+                    ("  Number of Steps: {}", num_steps),
+                    ("  Number of Function Evaluations: {}", num_steps),
+                    ("", ""), # newline.
+                    ("Solver options:", ""),
+                    ("  Solver: BDF: {}", order),
+                    ("  Solver type: Fixed step.", "" ),
+                ]
+
+        # Get maximum length of the formatting strings.
+        max_len = max([len(format_string) for (format_string, _) in
+            message_primitives])
+        # Add two.
+        max_len += 2
+
+        # Iterate over all message primitives and append to buffer.
+        string_buffer = []
+        for format_string, data in message_primitives:
+            final_format = get_padded_format(format_string)
+            string_buffer.append(final_format.format(data))
+
+        # Return buffer as a string.
+        return '\n'.join(string_buffer)
 
 
     def print_statistics(self, verbose=NORMAL):
-        self.log_message('Final Run Statistics            : {name} \n'.format(name=self.problem.name),        verbose)
-        self.log_message(' Step-length                    : {stepsize} '.format(stepsize=self.options["h"]), verbose)
-        self.log_message(' Number of Steps                : '+str(self.statistics["nsteps"]),          verbose)
-        self.log_message(' Number of Function Evaluations : '+str(self.statistics["nfcns"]),         verbose)
-
-        self.log_message('\nSolver options:\n',                                    verbose)
-        self.log_message(' Solver            : BDF{}'.format(self.order),                     verbose)
-        self.log_message(' Solver type       : Fixed step\n',                      verbose)
+        """ Use get_statistics() method and send to logger. """
+        self.log_message(self.get_statistics(), verbose)
 
 
 class BDFtests(unittest.TestCase):
