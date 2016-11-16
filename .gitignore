@@ -4,3 +4,6 @@ virtual_assimulo
 # Ignore uncompressed sources folders.
 Assimulo-*
 sundials*
+
+# Ignore pychache folder.
+__pycache__
