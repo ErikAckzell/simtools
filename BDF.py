@@ -8,6 +8,8 @@ import scipy
 import unittest
 from assimulo.solvers import CVode
 
+import step
+
 
 class BDF(Explicit_ODE):
     """
@@ -30,15 +32,15 @@ class BDF(Explicit_ODE):
         self.order = order
 
         if order == 1:
-            self.step_BDF = self.step_EE
+            self.step_BDF = step.EE
         elif order == 2 and corrector == 'FPI':
-            self.step_BDF = self.step_BDF2_FPI
+            self.step_BDF = step.BDF2_FPI
         elif order == 2:
-            self.step_BDF = self.step_BDF2
+            self.step_BDF = step.BDF2
         elif order == 3:
-            self.step_BDF = self.step_BDF3
+            self.step_BDF = step.BDF3
         elif order == 4:
-            self.step_BDF = self.step_BDF4
+            self.step_BDF = step.BDF4
         else:
             raise ValueError('Only BDF methods of order 2-4 are implemented')
 
@@ -83,124 +85,8 @@ class BDF(Explicit_ODE):
 
         return ID_PY_OK, tres, yres
 
-    def step_EE(self, t, y, h, floatflag=False):
-        """
-        This calculates the next step in the integration with explicit Euler.
-        """
-        self.statistics["nfcns"] += 1
-
-        f = self.problem.rhs
-        if floatflag:
-            return t + h, y + h * f(t, y)
-        else:
-            return t[-1] + h, y[-1] + h * f(t[-1], y[-1])
-
-    def step_BDF2_FPI(self, tres, yres, h):
-        """
-        BDF-2 with Zero order predictor, using FPI
-
-        alpha_0*y_np1+alpha_1*y_n+alpha_2*y_nm1=h f(t_np1,y_np1)
-        alpha=[3/2,-2,1/2]
-        """
-        alpha = [3./2., -2., 1./2]
-        f = self.problem.rhs
-
-        y_n, y_nm1 = yres[-2:]
-
-        t_np1 = tres[-1] + h
-
-        y_np1_i=y_n
-
-        y = yres[-1]
-
-        for i in range(self.maxit):
-            self.statistics["nfcns"] += 1
-            y_np1=(-(alpha[1]*yres[-1]+alpha[2]*yres[-2])+h*f(t_np1,y))/alpha[0]
-            if SL.norm(y - y_np1) < self.tol:
-                return t_np1, y_np1
-            y = y_np1
-        else:
-            raise Explicit_ODE_Exception('Corrector could not converge within % iterations'%i)
 
 
-    def step_BDF2(self, tres, yres, h):
-        """
-        BDF-2 with Zero order predictor, using scipy.optimize.fsolve
-
-        alpha_0*y_np1+alpha_1*y_n+alpha_2*y_nm1=h f(t_np1,y_np1)
-        alpha=[3/2,-2,1/2]
-        """
-        alpha = [3./2., -2., 1./2]
-        f = self.problem.rhs
-
-        t_np1 = tres[-1] + h
-        result = fsolve(lambda y: alpha[0] * y +
-                                  alpha[1] * yres[-1] +
-                                  alpha[2] * yres[-2] -
-                                  h * f(t_np1, y),
-                                  yres[-1],
-                                  xtol=self.tol,
-                                  full_output=1)
-        if result[2] == 1:
-            y_np1 = result[0]
-            self.statistics["nfcns"] += result[1]['nfev']
-            return t_np1, y_np1
-        else:
-            raise Explicit_ODE_Exception('fsolve did not find a solution')
-
-
-    def step_BDF3(self, tres, yres, h):
-        """
-        BDF-3 with Zero order predictor, using scipy.optimize.fsolve
-
-        alpha_0*y_np1+alpha_1*y_n+alpha_2*y_nm1 + alpha_3*y_nm2 = h*f(t_np1,y_np1)
-        alpha = [11/6, -3, 3/2, -1/3]
-        """
-        alpha = [11./6., -3., 3./2., -1./3.]
-        f=self.problem.rhs
-
-        t_np1 = tres[-1] + h
-        result = fsolve(lambda y: alpha[0] * y +
-                                  alpha[1] * yres[-1] +
-                                  alpha[2] * yres[-2] +
-                                  alpha[3] * yres[-3] -
-                                  h * f(t_np1, y),
-                                  yres[-1],
-                                  xtol=self.tol,
-                                  full_output=1)
-        if result[2] == 1:
-            y_np1 = result[0]
-            self.statistics["nfcns"] += result[1]['nfev']
-            return t_np1, y_np1
-        else:
-            raise Explicit_ODE_Exception('fsolve did not find a solution')
-
-    def step_BDF4(self, tres, yres, h):
-        """
-        BDF-4 with Zero order predictor, using scipy.optimize.fsolve
-
-        alpha_0*y_np1+alpha_1*y_n+alpha_2*y_nm1 + alpha_3*y_nm2 + alpha_4*y_nm3 = h*f(t_np1,y_np1)
-        alpha = [25/12, -4, 3, -4/3, 1/4]
-        """
-        alpha = [25/12, -4, 3, -4/3, 1/4]
-        f=self.problem.rhs
-
-        t_np1 = tres[-1] + h
-        result = fsolve(lambda y: alpha[0] * y +
-                                  alpha[1] * yres[-1] +
-                                  alpha[2] * yres[-2] +
-                                  alpha[3] * yres[-3] +
-                                  alpha[4] * yres[-4] -
-                                  h * f(t_np1, y),
-                                  yres[-1],
-                                  xtol=self.tol,
-                                  full_output=1)
-        if result[2] == 1:
-            y_np1 = result[0]
-            self.statistics["nfcns"] += result[1]['nfev']
-            return t_np1, y_np1
-        else:
-            raise Explicit_ODE_Exception('fsolve did not find a solution')
 
     def print_statistics(self, verbose=NORMAL):
         self.log_message('Final Run Statistics            : {name} \n'.format(name=self.problem.name),        verbose)
