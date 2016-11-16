@@ -1,0 +1,6 @@
+# Ignore virtualenv folder.
+virtual_assimulo
+
+# Ignore uncompressed sources folders.
+Assimulo-*
+sundials*
