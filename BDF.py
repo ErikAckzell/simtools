@@ -29,7 +29,9 @@ class BDF(Explicit_ODE):
 
         self.order = order
 
-        if order == 2 and corrector == 'FPI':
+        if order == 1:
+            self.step_BDF = self.step_EE
+        elif order == 2 and corrector == 'FPI':
             self.step_BDF = self.step_BDF2_FPI
         elif order == 2:
             self.step_BDF = self.step_BDF2
@@ -65,7 +67,7 @@ class BDF(Explicit_ODE):
             self.statistics["nsteps"] += 1
 
             if i < self.order:  # initial steps
-                t_np1, y_np1 = self.step_EE(t, y, h)
+                t_np1, y_np1 = self.step_EE(t, y, h, floatflag=True)
                 y = y_np1
             else:
                 t_np1, y_np1 = self.step_BDF(tres[-self.order:],
@@ -81,14 +83,17 @@ class BDF(Explicit_ODE):
 
         return ID_PY_OK, tres, yres
 
-    def step_EE(self, t, y, h):
+    def step_EE(self, t, y, h, floatflag=False):
         """
         This calculates the next step in the integration with explicit Euler.
         """
         self.statistics["nfcns"] += 1
 
         f = self.problem.rhs
-        return t + h, y + h * f(t, y)
+        if floatflag:
+            return t + h, y + h * f(t, y)
+        else:
+            return t[-1] + h, y[-1] + h * f(t[-1], y[-1])
 
     def step_BDF2_FPI(self, tres, yres, h):
         """
@@ -210,7 +215,10 @@ class BDF(Explicit_ODE):
 
 class BDFtests(unittest.TestCase):
     def setUp(self):
-        self.y0 = scipy.array([0.9, 0.1, 0, 0])
+        phi = 2 * scipy.pi - 0.3
+        x = scipy.cos(phi)
+        y = scipy.sin(phi)
+        self.y0 = scipy.array([x, y, 0, 0])
         self.klist = [0] + [10 ** i for i in range(0, 4)]
         self.orderlist = [2, 3, 4]
 
@@ -218,7 +226,7 @@ class BDFtests(unittest.TestCase):
         def pend(t, y, k=k):
             """
             This is the right hand side function of the differential equation
-            describing the elastic pendulum
+            describing the elastic pendulum. High k => stiffer pendulum
             y: 1x4 array
             k: float
             """
@@ -262,30 +270,28 @@ class BDFtests(unittest.TestCase):
         order = 4
         pend = self.get_pendulum_rhs(k)
         initial_values = scipy.array([[x, y, 0, 0],
-                                      [x+1.0, y, 0, 0],
-                                      [x+2.0, y, 0, 0],
-                                      [x+5.0, y, 0, 0],
-                                      [x+10.0, y, 0, 0],
-                                      [x+100.0, y, 0, 0]])
+                                      [x+0.01, y, 0, 0],
+                                      [x+0.1, y, 0, 0],
+                                      [x+0.5, y, 0, 0]])
+#                                      [x+0.99, y, 0, 0],
+#                                      [x+1.0, y, 0, 0]])
         for y0 in initial_values:
-            pend_mod = Explicit_Problem(pend, y0=y0)
-            pend_mod.name = \
-              'Nonlinear Pendulum, k = {k}, init = {init}'.format(k=k, init=y0)
-            exp_sim = BDF(pend_mod, order=order) #Create a BDF solver
-            t, y = exp_sim.simulate(10)
-            exp_sim.plot(mask=[1, 1, 0, 0])
-            mpl.show()
+            for k in self.klist:
+                pend = self.get_pendulum_rhs(k)
+                pend_mod = Explicit_Problem(pend, y0=y0)
+                pend_mod.name = \
+                  'Nonlinear Pendulum, k = {k}, init = {init}'.format(k=k, init=y0)
+                exp_sim = BDF(pend_mod, order=order) #Create a BDF solver
+                t, y = exp_sim.simulate(10)
+                exp_sim.plot(mask=[1, 1, 0, 0])
+                mpl.show()
 
     def test_order_2_FPI(self):
         k = 100
-        phi = 2 * scipy.pi - 0.3
-        x = scipy.cos(phi)
-        y = scipy.sin(phi)
         order = 2
         corrector = 'FPI'
         pend = self.get_pendulum_rhs(k)
-        y0 = scipy.array([x, y, 0, 0])
-        pend_mod = Explicit_Problem(pend, y0=y0)
+        pend_mod = Explicit_Problem(pend, y0=self.y0)
         pend_mod.name = \
          'Nonlinear Pendulum, FPI, k = {k}, init = {init}'.format(k=k, init=y0)
         exp_sim = BDF(pend_mod, order=order, corrector=corrector)
@@ -293,11 +299,67 @@ class BDFtests(unittest.TestCase):
         exp_sim.plot(mask=[1, 1, 0, 0])
         mpl.show()
 
+    def test_EE_k_influence(self):
+        order = 1
+        for k in self.klist:
+            pend = self.get_pendulum_rhs(k)
+            pend_mod = Explicit_Problem(pend, y0=self.y0)
+            pend_mod.name = \
+             'Nonlinear Pendulum, EE, k = {k}, init = {init}'.format(k=k,
+                                                                     init=self.y0)
+            exp_sim = BDF(pend_mod, order=order)
+            t, y = exp_sim.simulate(10)
+            exp_sim.plot(mask=[1, 1, 0, 0])
+            mpl.show()
+
+    def test_CVode_method_params_influence(self):
+        k = 100
+        phi = 2 * scipy.pi - 0.3
+        x = scipy.cos(phi)
+        y = scipy.sin(phi)
+        t0 = 0
+        y0 = scipy.array([x+0.2, y, 0, 0])
+        pend = self.get_pendulum_rhs(k)
+        maxordlist = list(range(0, 7, 2))
+        atollist = [scipy.array([2, 1, 2, 2]) * 10 ** (-i)
+                    for i in range(0, 7, 2)]
+        rtollist = [10 ** (-i) for i in range(0, 7, 2)]
+        for maxord in maxordlist:
+            for atol in atollist:
+                for rtol in rtollist:
+                    mod = Explicit_Problem(pend, y0, t0)
+                    mod.name = \
+                     'Nonlinear Pendulum, CVode, k={k}, stretched, \n\
+                      maxord={maxord}, atol={atol}, rtol={rtol}'.format(k=k,
+                                        maxord=maxord, atol=atol, rtol=rtol)
+                    sim = CVode(mod)
+                    sim.maxord = maxord
+                    sim.atol = atol
+                    sim.rtol = rtol
+                    t, y = sim.simulate(10)
+                    sim.plot(mask=[1, 1, 0, 0])
+                    mpl.show()
+
+    def test_CVode_k_influence(self):
+        phi = 2 * scipy.pi - 0.3
+        x = scipy.cos(phi)
+        y = scipy.sin(phi)
+        t0 = 0
+        y0 = scipy.array([x+0.2, y, 0, 0])
+        for k in self.klist:
+            pend = self.get_pendulum_rhs(k)
+            mod = Explicit_Problem(pend, y0, t0)
+            mod.name = \
+             'Nonlinear Pendulum, CVode, k={k}, stretched'.format(k=k)
+            sim = CVode(mod)
+            t, y = sim.simulate(10)
+            sim.plot(mask=[1, 1, 0, 0])
+            mpl.show()
 
 
 if __name__ == '__main__':
     ##---- TASK 1 ----##
-    def pend(t, y, k=100):
+    def pend(t, y, k=10):
             """
             This is the right hand side function of the differential equation
             describing the elastic pendulum
@@ -316,7 +378,7 @@ if __name__ == '__main__':
     phi = 2 * scipy.pi - 0.3
     x = scipy.cos(phi)
     y = scipy.sin(phi)
-    y0 = scipy.array([x, y, 0, 0])
+    y0 = scipy.array([x + 0.1, y, 0, 0])
     t0 = 0
 
     mod = Explicit_Problem(pend, y0, t0)
