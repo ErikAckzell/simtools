@@ -143,6 +143,7 @@ class BDF(Explicit_ODE):
 
 
 def pend_rhs_function(k):
+    #!! Include: task1
     """
     This is the right hand side function of the differential equation
     describing the elastic pendulum. High k => stiffer pendulum
@@ -160,6 +161,7 @@ def pend_rhs_function(k):
                       (scipy.sqrt(y[0] ** 2 + y[1] ** 2)) - 1])
         return yprime
     return pendulum_eq_rhs
+    #!! Include end
 
 
 class DefaultData(object):

@@ -70,7 +70,9 @@ endif
 
 pdf: $(texdir)/$(output_pdf)
 
-$(texdir)/$(output_pdf): $(texdir)/$(source_tex) $(tex_includes)
+$(texdir)/$(output_pdf): $(texdir)/$(source_tex) $(tex_includes) BDF.py
+	# Run code extractor each build.
+	python code_extractor.py
 	cd $(texdir) && \
 	pdflatex $(source_tex) && \
 	mv $(source_pdf) $(output_pdf)
