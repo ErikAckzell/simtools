@@ -421,4 +421,4 @@ if __name__ == '__main__':
     task_1_start_offset = 0.1
 #    task_1(task_1_k, task_1_start_offset)
     ##----
-    run_simulations(plot=False)
+    run_simulations(plot=True)
