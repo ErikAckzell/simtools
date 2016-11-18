@@ -178,7 +178,7 @@ class DefaultData(object):
         self.name = "Nonlinear Pendulum"
 
 
-def run_simulations(plot=True):
+def run_simulations(show_plot=True):
     """ Method that runs all the defined simulations. """
 
     # Create default data.
@@ -194,7 +194,7 @@ def run_simulations(plot=True):
         print("{}\n\n".format(string))
 
 
-    def run_permutations(test_case_group, plot):
+    def run_permutations(test_case_group, show_plot):
         """ Possible variations:
                 - k-values.
                 - initial values.
@@ -225,7 +225,7 @@ def run_simulations(plot=True):
                                           k_value,
                                           initial_values)
                     # Toggle plotting.
-                    case.plot = plot
+                    case.show_plot = show_plot
                     # Run the single test case.
                     run_single_case(case)
                     SEPARATE_OUTPUT()
@@ -244,11 +244,10 @@ def run_simulations(plot=True):
         exp_sim = BDF(pend_mod, order=test_case.order)
         # Run the simulation.
         t, y = exp_sim.simulate(test_case.sim_tmax)
-        # Should we plot?
-        if test_case.plot:
-            # Plot the result.
-            exp_sim.plot(mask=[1, 1, 0, 0])
-            # Show the plot.
+        # Plot the data.
+        exp_sim.plot(mask=[1, 1, 0, 0])
+        # Should we show the plot?
+        if test_case.show_plot:
             mpl.show()
 
 
@@ -423,4 +422,4 @@ if __name__ == '__main__':
     task_1_start_offset = 0.1
 #    task_1(task_1_k, task_1_start_offset)
     ##----
-    run_simulations(plot=True)
+    run_simulations(plot=False)
