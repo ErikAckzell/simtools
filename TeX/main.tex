@@ -1,0 +1,58 @@
+% Document class.
+\documentclass{article}
+% Input encoding
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+% Graphics.
+\usepackage{graphicx}
+% Maths
+\usepackage{amsmath}
+
+% Title and authors.
+\title{FMNN05 \\\large{Report}}
+\author{
+    Stefan Eng \texttt{<atn08sen@student.lu.se>} \\
+    <name> \texttt{<@student.lu.se>}
+}
+
+\begin{document}
+
+\maketitle
+% No page number on first side.
+\thispagestyle{empty}
+
+\newpage
+
+\section{Project 01}
+
+    \subsection{Task 1}
+
+        Task 1 begins by defining the equations that describe the motion of an
+        elastic pendulum, where the bar is replaced with a spring with spring
+        constant $k$ and other attributes set to 1.
+
+
+        \begin{flalign}
+            & & & \dot{y_1} = y_3 & \\
+            & & & \dot{y_2} = y_4 & \\
+            & & & \dot{y_3} = -y_1\lambda{}(y_1, y_2) & \\
+            & & & \dot{y_4} = -y_2\lambda{}(y_1, y_2) -1 &
+        \end{flalign}
+
+        where $\lambda(y_1, y_2) =
+            k \frac
+                {\sqrt{y_1^2+y_2^2}-1}
+                {\sqrt{y_1^2+y_2^2}
+              }$.
+
+        % Include graphs for task 1.
+        \noindent
+        \input{includes/include_order_task_01.tex}
+
+    \subsection{Task 2}
+    \subsection{Task 3}
+    \subsection{Task 4}
+    \subsection{Task 5}
+    \subsection{Task 6}
+
+\end{document}

@@ -7,3 +7,10 @@ sundials*
 
 # Ignore pychache folder.
 __pycache__
+
+# Ignore LaTeX auxiliary files.
+*.aux
+*.log
+
+# Ignore main pdf file.
+TeX/fmnn05.pdf

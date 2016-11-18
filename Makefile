@@ -16,7 +16,15 @@ sundials_src_tar := $(compressed_sources)/sundials-2.7.0.tar.gz
 sundials_bulid_dir := $(sundials_src)/builddir
 cmake_flags := -DCMAKE_C_FLAGS=-g -03 -fPCI
 
-.PHONY: all clean uncompress
+# LaTeX related variables.
+texdir = TeX
+output_pdf = fmnn05.pdf
+source_pdf = main.pdf
+source_tex = main.tex
+
+tex_includes = $(wildcard $(texdir)/includes/*.tex)
+
+.PHONY: all clean uncompress pdf
 
 all: uncompress $(sundials_bulid_dir) $(virtdir)
 
@@ -59,3 +67,10 @@ endif
 	$(vp)/pip install matplotlib
 	# Install assimulo.
 	cd $(assimulo_src) && ../$(vp)/python setup.py install --sundials-home=/usr/local
+
+pdf: $(texdir)/$(output_pdf)
+
+$(texdir)/$(output_pdf): $(texdir)/$(source_tex) $(tex_includes)
+	cd $(texdir) && \
+	pdflatex $(source_tex) && \
+	mv $(source_pdf) $(output_pdf)
