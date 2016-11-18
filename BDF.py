@@ -7,7 +7,12 @@ import scipy
 import unittest
 from assimulo.solvers import CVode
 
+import matplotlib.pyplot as plt
+
 import step
+
+# Variables for saving plots.
+plot_template_name = "{}.pdf"
 
 
 class BDF(Explicit_ODE):
@@ -175,7 +180,7 @@ class DefaultData(object):
         self.k = 100
         self.k_list = [0] + [10 ** i for i in range(0, 4)]
         self.order_list = [2, 3, 4]
-        self.name = "Nonlinear Pendulum"
+        self.name = "Nonlinear Pendulum: "
 
 
 def run_simulations(show_plot=True):
@@ -201,13 +206,18 @@ def run_simulations(show_plot=True):
                 - bdf order.
         """
 
+        # Get title format.
+        title_format = "{}{}".format(default.name,
+                                       test_case_group.get('title'))
+
         # Iterate over all combinations of the changing variables listed above.
-        for k_value in test_case_group.k_list:
-            for initial_values in test_case_group.init_values_list:
-                for bdf_order in test_case_group.order_list:
+        for k_value in test_case_group.get('k_list'):
+            for initial_values in test_case_group.get('init_value_list'):
+                for bdf_order in test_case_group.get('order_list'):
                     # Gather missing data.
-                    name = test_case_group.name
-                    sim_tmax = test_case_group.sim_tmax
+                    name = test_case_group.get('name')
+                    sim_tmax = test_case_group.get('sim_tmax')
+
 
                     # Construct information string.
                     fmt_string = ("Running simulation for k = {} "+
@@ -218,8 +228,19 @@ def run_simulations(show_plot=True):
                                            initial_values,
                                            bdf_order))
 
+                    # Assemble all values for title formatting.
+                    possible_title_values = {
+                            'k': k_value,
+                            'initial_values': initial_values,
+                            'order': bdf_order,
+                            }
+
+                    # Create title for plot by expanding dict to keywords.
+                    title = title_format.format(**possible_title_values)
+
                     # Create new single test case.
                     case = SingleTestCase(name,
+                                          title,
                                           bdf_order,
                                           sim_tmax,
                                           k_value,
@@ -233,6 +254,16 @@ def run_simulations(show_plot=True):
         SEPARATE_OUTPUT("\n\n[!] #### Group done, continuing with next group of tests.")
 
 
+    def filter_out_y(y_vector_list):
+        """ Keep the first and second value of the vectors in the list. """
+        first_line = []
+        second_line = []
+        for y1, y2, _, _ in y_vector_list:
+            first_line.append(y1)
+            second_line.append(y2)
+        return first_line, second_line
+
+
     def run_single_case(test_case):
         """ Run a single test case. """
         # Get method defining right hand side of pendulum equation.
@@ -244,28 +275,27 @@ def run_simulations(show_plot=True):
         exp_sim = BDF(pend_mod, order=test_case.order)
         # Run the simulation.
         t, y = exp_sim.simulate(test_case.sim_tmax)
-        # Plot the data.
-        exp_sim.plot(mask=[1, 1, 0, 0])
+        # Make the plot.
+        plt.figure(1)
+        # Pick out the first and second value of y.
+        first_line, second_line = filter_out_y(y)
+        # Add title.
+        plt.title(test_case.title)
+        # Plot the different linet and add legend.
+        plt.plot(t, first_line, label='x')
+        plt.plot(t, second_line, label='y')
+        # Put legend in upper left corner.
+        plt.legend(loc='upper right', frameon=False)
         # Should we show the plot?
         if test_case.show_plot:
-            mpl.show()
-
-
-    class GroupTestCase():
-        """ Class representing a group of BDF test cases. """
-        def __init__(self, name, order_list, sim_tmax, k_list, init_values_list):
-            self.name = name
-            self.order_list = order_list
-            self.sim_tmax= sim_tmax
-            self.k_list = k_list
-            self.init_values_list = init_values_list
-            self.plot = True
+            plt.show()
 
 
     class SingleTestCase():
         """ Class representing a single BDF test case. """
-        def __init__(self, name, order, sim_tmax, k, init):
+        def __init__(self, name, title, order, sim_tmax, k, init):
             self.name = name
+            self.title = title
             self.order = order
             self.sim_tmax = sim_tmax
             self.k = k
@@ -273,21 +303,15 @@ def run_simulations(show_plot=True):
             self.plot = True
 
 
-    def dict_2_group_case(dictionary):
-        """ Turn data in dictionary to Test Case object. """
-        return GroupTestCase(dictionary['name'],
-                             dictionary['order_list'],
-                             dictionary['sim_tmax'],
-                             dictionary['k_list'],
-                             dictionary['init_value_list'])
-
     # Test order 4 BDF with varying k's.
     ord_4_var_k = {
-        'name': default.name,
+        'name': "ord_4_var_k",
+        'title': "Order {order} BDF varying k, k={k}.",
         'order_list': [4],
         'sim_tmax': 5,
         'k_list': default.k_list,
         'init_value_list': default.init_list,
+        'title_values': 'k_list'
         }
 
     # Test varying order with k = 1000
@@ -320,7 +344,7 @@ def run_simulations(show_plot=True):
             ]
 
     for case_dict in test_cases:
-        run_permutations(dict_2_group_case(case_dict), plot)
+        run_permutations(case_dict, show_plot)
 
 
 #class BDFtests(unittest.TestCase):
@@ -413,8 +437,6 @@ def task_1(k, x_start_offset):
     sim = CVode(mod)
     t, y = sim.simulate(10)
     sim.plot(mask=[1, 1, 0, 0])
-    mpl.show()
-
 
 if __name__ == '__main__':
     ##---- TASK 1 ----##
@@ -422,4 +444,4 @@ if __name__ == '__main__':
     task_1_start_offset = 0.1
 #    task_1(task_1_k, task_1_start_offset)
     ##----
-    run_simulations(plot=False)
+    run_simulations(show_plot=True)
