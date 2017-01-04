@@ -17,7 +17,7 @@ def BDF4(self, tres, yres, h):
 
     t_np1 = tres[-1] + h
     result = fsolve(lambda y: f(t_np1,
-                                scipy.vstack((y,
+                                scipy.hstack((y,
                                               (1 / h) * (alpha[0] * y +
                                               alpha[1] * yres[-1] +
                                               alpha[2] * yres[-2] +
@@ -25,22 +25,14 @@ def BDF4(self, tres, yres, h):
                                               alpha[4] * yres[-4])))),
                               yres[-1],
                               xtol=self.tol,
-                              full_output=1)[:20]
-#    result = fsolve(lambda y: alpha[0] * y +
-#                              alpha[1] * yres[-1] +
-#                              alpha[2] * yres[-2] +
-#                              alpha[3] * yres[-3] +
-#                              alpha[4] * yres[-4] -
-#                              h * f(t_np1, y),
-#                              yres[-1],
-#                              xtol=self.tol,
-#                              full_output=1)
+                              full_output=1)
+
     if result[2] == 1:
-        y_np1 = result[0]
+        y_np1 = result[0][:20]
         self.statistics["nfcns"] += result[1]['nfev']
         return t_np1, y_np1
     else:
-        raise Explicit_ODE_Exception('fsolve did not find a solution')
+        raise Exception('fsolve did not find a solution, steps: {}'.format(self.statistics["nsteps"]))
 
 
 def BDF3(self, tres, yres, h):
@@ -70,17 +62,19 @@ def BDF3(self, tres, yres, h):
         raise Explicit_ODE_Exception('fsolve did not find a solution')
 
 
-def EE(self, t, y, h, floatflag=False):
+def EE(self, t, y, h, yp, floatflag=False):
     """
     This calculates the next step in the integration with explicit Euler.
     """
     self.statistics["nfcns"] += 1
 
-    f = self.problem.rhs
-    if floatflag:
-        return t + h, y + h * f(t, y)
-    else:
-        return t[-1] + h, y[-1] + h * f(t[-1], y[-1])
+    return t + h, y + h * yp
+#
+#    f = self.problem.rhs
+#    if floatflag:
+#        return t + h, y + h * f(t, y)
+#    else:
+#        return t[-1] + h, y[-1] + h * f(t[-1], y[-1])
 
 
 def BDF2_FPI(self, tres, yres, h):
@@ -122,16 +116,35 @@ def BDF2(self, tres, yres, h):
     f = self.problem.rhs
 
     t_np1 = tres[-1] + h
-    result = fsolve(lambda y: alpha[0] * y +
-                              alpha[1] * yres[-1] +
-                              alpha[2] * yres[-2] -
-                              h * f(t_np1, y),
+    result = fsolve(lambda y: f(t_np1,
+                                scipy.hstack((y,
+                                              (1 / h) * (alpha[0] * y +
+                                              alpha[1] * yres[-1] +
+                                              alpha[2] * yres[-2])))),
                               yres[-1],
                               xtol=self.tol,
                               full_output=1)
     if result[2] == 1:
-        y_np1 = result[0]
+        y_np1 = result[0][:20]
         self.statistics["nfcns"] += result[1]['nfev']
         return t_np1, y_np1
     else:
-        raise Explicit_ODE_Exception('fsolve did not find a solution')
+        raise Exception('fsolve did not find a solution, steps: {}'.format(self.statistics["nsteps"]))
+
+#    result = fsolve(lambda y: f(t_np1,
+#                                scipy.hstack((y,
+#                                              (1 / h) * (alpha[0] * y +
+#                                              alpha[1] * yres[-1] +
+#                                              alpha[2] * yres[-2] +
+#                                              alpha[3] * yres[-3] +
+#                                              alpha[4] * yres[-4])))),
+#                              yres[-1],
+#                              xtol=self.tol,
+#                              full_output=1)
+#
+#    if result[2] == 1:
+#        y_np1 = result[0][:20]
+#        self.statistics["nfcns"] += result[1]['nfev']
+#        return t_np1, y_np1
+#    else:
+#        raise Exception('fsolve did not find a solution, steps: {}'.format(self.statistics["nsteps"]))

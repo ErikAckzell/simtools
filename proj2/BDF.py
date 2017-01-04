@@ -18,17 +18,19 @@ class BDF(Explicit_ODE):
     maxit = 1000
     maxsteps = 5000
 
-    def __init__(self, problem, order, corrector='Newton'):
+    def __init__(self, problem, order, yp0, corrector='Newton'):
         Explicit_ODE.__init__(self, problem) #Calls the base class
 
         # Solver options
-        self.options["h"] = 0.01
+        self.options["h"] = 0.0001
 
         # Statistics
         self.statistics["nsteps"] = 0
         self.statistics["nfcns"] = 0
 
         self.order = order
+
+        self.yp0 = yp0
 
         if order == 1:
             self.step_BDF = step.EE
@@ -61,6 +63,7 @@ class BDF(Explicit_ODE):
         # Lists for storing the result
         tres = []
         yres = []
+        ypres = [self.yp0]
 
         for i in range(self.maxsteps):
             if t >= tf:
@@ -68,10 +71,10 @@ class BDF(Explicit_ODE):
             self.statistics["nsteps"] += 1
 
             if i < self.order:  # initial steps
-#                t_np1, y_np1 = step.EE(self, t, y, h, floatflag=True)
+#                t_np1, y_np1 = step.EE(self, t, y, h, yp=ypres[-1], floatflag=False)
 #                y = y_np1
                 t_np1 = t + h
-                y = y
+                y_np1 = y
 
             else:
                 t_np1, y_np1 = self.step_BDF(self, tres[-self.order:],
@@ -420,17 +423,52 @@ def task_1(k, x_start_offset):
 
 if __name__ == '__main__':
 
-    y0 = squeezer_HsnppkU.init_squeezer()
+    y0, yp0 = squeezer_HsnppkU.init_squeezer()
+
+
 
     t0 = 0
 
-    mod = Explicit_Problem(squeezer_HsnppkU.squeezer, y0, y0)
+#    tol = 1.e-8
+#
+#    atol = scipy.hstack((scipy.array([tol] * 14),
+#                     scipy.array([1e5] * 2),
+#                     scipy.array([tol] * 4)))
 
-    sim = BDF(mod, 2)
 
-    t, y = sim.simulate(10)
+    mod = Explicit_Problem(squeezer_HsnppkU.squeezer, y0, t0)
 
-    sim.plot()
+
+    sim = BDF(mod, 2, yp0=yp0)
+
+    t, y = sim.simulate(0.03)
+
+#    I, J = y.shape
+#
+#    y += scipy.pi
+
+#    for i in range(I):
+#        for j in range(J):
+#            if y[i, j] > 2 * scipy.pi:
+#                y[i, j] = y[i, j] % (2 * scipy.pi)
+#            elif y[i, j] < - 2 * scipy.pi:
+#                y[i, j] = - (y[i, j] % (2 * scipy.pi))
+#
+#
+#    y -= scipy.pi
+
+    mpl.close('all')
+
+    mpl.plot(t, y[:, :7])
+
+    mpl.ylim([-0.8, 0.8])
+    mpl.xlim([0, 0.03])
+
+    mpl.grid()
+
+#    mpl.close('all')
+
+#    sim.plot(mask=[1] * 7 + [0] * 13)
 
     ##---- TASK 1 ----##
 #    task_1_k = 100
