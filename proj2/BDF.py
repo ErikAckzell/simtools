@@ -425,8 +425,6 @@ if __name__ == '__main__':
 
     y0, yp0 = squeezer_HsnppkU.init_squeezer()
 
-
-
     t0 = 0
 
 #    tol = 1.e-8
@@ -443,6 +441,10 @@ if __name__ == '__main__':
 
     t, y = sim.simulate(0.03)
 
+    lamb = squeezer_HsnppkU.get_lambda()
+
+    print('last lambda: ', lamb)
+
 #    I, J = y.shape
 #
 #    y += scipy.pi
@@ -457,7 +459,7 @@ if __name__ == '__main__':
 #
 #    y -= scipy.pi
 
-    mpl.close('all')
+#    mpl.close('all')
 
     mpl.plot(t, y[:, :7])
 

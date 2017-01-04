@@ -1,5 +1,9 @@
 from scipy import *
 
+
+lamb_global = None
+
+
 def init_squeezer():
 	y_1 = array([-0.0617138900142764496358948458001,  #  beta
 				0.,                                 #  theta
@@ -132,6 +136,10 @@ def squeezer2(t, yE):
     res_2 = dot(m,yp[7:14])- ff[0:7]+dot(gp.T,lamb)
     res_3 = g
 
+    global lamb_global
+
+    lamb_global = lamb
+
     return hstack((res_1,res_2,res_3))
 
 
@@ -249,6 +257,12 @@ def squeezer (t, yE):
 #    res_3 = g
     res_3 = dot(gp, y[7:14])
 
+    global lamb_global
+
+    lamb_global = lamb
+
     return hstack((res_1,res_2,res_3))
 
 
+def get_lambda():
+    return lamb_global
