@@ -10,9 +10,25 @@ from assimulo.solvers import CVode
 import matplotlib.pyplot as plt
 
 import step
+import os
 
 # Variables for saving plots.
 plot_template_name = "{}.pdf"
+plot_folder = os.path.join("includes", "figures")
+
+# Class for default values.
+class DefaultData(object):
+    """ Class that holds the default data for the tests. """
+
+    def __init__(self):
+        self.phi = 2 * scipy.pi - 0.3
+        self.x = scipy.cos(self.phi)
+        self.y = scipy.sin(self.phi)
+        self.init_list = [scipy.array([self.x, self.y, 0, 0])]
+        self.k = 100
+        self.k_list = [0, 1, 5, 10, 100, 1000]
+        self.order_list = [2, 3, 4]
+        self.name = "Nonlinear Pendulum: "
 
 
 class BDF(Explicit_ODE):
@@ -169,18 +185,33 @@ def pend_rhs_function(k):
 #!! Include end
 
 
-class DefaultData(object):
-    """ Class that holds the default data for the tests. """
+def find_factors(number):
+    """ Return the two factors of a small number by trial division. """
 
-    def __init__(self):
-        self.phi = 2 * scipy.pi - 0.3
-        self.x = scipy.cos(self.phi)
-        self.y = scipy.sin(self.phi)
-        self.init_list = [scipy.array([self.x, self.y, 0, 0])]
-        self.k = 100
-        self.k_list = [0] + [10 ** i for i in range(0, 4)]
-        self.order_list = [2, 3, 4]
-        self.name = "Nonlinear Pendulum: "
+    current_number = 2
+
+    factors = []
+    remainder = -1
+    temp = 0
+    prev_num = 0
+
+    i = 0
+    while(remainder != 0):
+        temp = int(number/current_number)
+        print(temp)
+        i += 1
+        if i == 5:
+            break
+        if (temp == 0):
+            factors.append(prev_num)
+            remainder = number-prev_num
+            continue
+        prev_num = temp
+        current_number += 1
+        print(current_number)
+        print(temp)
+        print(remainder)
+
 
 
 def run_simulations(show_plot=True):
@@ -188,6 +219,8 @@ def run_simulations(show_plot=True):
 
     # Create default data.
     default = DefaultData()
+
+    print(find_factors(6))
 
     def INFO(string):
         """ Function that prints information to console."""
@@ -207,13 +240,27 @@ def run_simulations(show_plot=True):
         """
 
         # Get title format.
-        title_format = "{}{}".format(default.name,
-                                       test_case_group.get('title'))
+        inner_title_format = test_case_group.get('title')
+
+        # Get all varying variables.
+        k_list = test_case_group.get('k_list')
+        initial_values_list = test_case_group.get('init_value_list')
+        order_list = test_case_group.get('order_list')
+
+        # Number of permutations.
+        permutations = len(k_list)*len(initial_values_list)*len(order_list)
+
+        # Initialize subplot variables.
+        subplot_dim = int((permutations/2)+0.5)
+        current_subplot = 1 # Starts at one.
+
+        # Make basis for one big plot.
+        fig = plt.figure(1)
 
         # Iterate over all combinations of the changing variables listed above.
-        for k_value in test_case_group.get('k_list'):
-            for initial_values in test_case_group.get('init_value_list'):
-                for bdf_order in test_case_group.get('order_list'):
+        for k_value in k_list:
+            for initial_values in initial_values_list:
+                for bdf_order in order_list:
                     # Gather missing data.
                     name = test_case_group.get('name')
                     sim_tmax = test_case_group.get('sim_tmax')
@@ -236,7 +283,7 @@ def run_simulations(show_plot=True):
                             }
 
                     # Create title for plot by expanding dict to keywords.
-                    title = title_format.format(**possible_title_values)
+                    title = inner_title_format.format(**possible_title_values)
 
                     # Create new single test case.
                     case = SingleTestCase(name,
@@ -244,21 +291,29 @@ def run_simulations(show_plot=True):
                                           bdf_order,
                                           sim_tmax,
                                           k_value,
-                                          initial_values)
+                                          initial_values,
+                                          subplot_dim,
+                                          current_subplot)
                     # Toggle plotting.
                     case.show_plot = show_plot
                     # Run the single test case.
                     run_single_case(case)
                     SEPARATE_OUTPUT()
+                    current_subplot += 1
 
         SEPARATE_OUTPUT("\n\n[!] #### Group done, continuing with next group of tests.")
+        figure_filename = plot_template_name.format(name)
+        plot_path = os.path.join(plot_folder, figure_filename)
+        # Use tight layout, otherwise the titles collide with the axis.
+        plt.tight_layout()
+        plt.savefig(plot_path)
 
 
     def filter_out_y(y_vector_list):
         """ Keep the first and second value of the vectors in the list. """
         first_line = []
         second_line = []
-        for y1, y2, _, _ in y_vector_list:
+        for y1, y2, _, _ in list(y_vector_list):
             first_line.append(y1)
             second_line.append(y2)
         return first_line, second_line
@@ -275,17 +330,20 @@ def run_simulations(show_plot=True):
         exp_sim = BDF(pend_mod, order=test_case.order)
         # Run the simulation.
         t, y = exp_sim.simulate(test_case.sim_tmax)
-        # Make the plot.
-        plt.figure(1)
         # Pick out the first and second value of y.
         first_line, second_line = filter_out_y(y)
-        # Add title.
-        plt.title(test_case.title)
+        # Grab the subplot data.
+        sp_dim = test_case.subplot_dim
+        sp_current = test_case.current_subplot
+        # Create new subplot.
+        subplot = plt.subplot(sp_dim, sp_dim, sp_current)
         # Plot the different linet and add legend.
         plt.plot(t, first_line, label='x')
         plt.plot(t, second_line, label='y')
         # Put legend in upper left corner.
         plt.legend(loc='upper right', frameon=False)
+        # Add title.
+        subplot.title.set_text(test_case.title)
         # Should we show the plot?
         if test_case.show_plot:
             plt.show()
@@ -293,20 +351,23 @@ def run_simulations(show_plot=True):
 
     class SingleTestCase():
         """ Class representing a single BDF test case. """
-        def __init__(self, name, title, order, sim_tmax, k, init):
+        def __init__(self, name, title, order, sim_tmax, k, init, subplot_dim,
+                current_subplot):
             self.name = name
             self.title = title
             self.order = order
             self.sim_tmax = sim_tmax
             self.k = k
             self.init = init
+            self.subplot_dim = subplot_dim
+            self.current_subplot = current_subplot
             self.plot = True
 
 
     # Test order 4 BDF with varying k's.
     ord_4_var_k = {
         'name': "ord_4_var_k",
-        'title': "Order {order} BDF varying k, k={k}.",
+        'title': "k={k}.",
         'order_list': [4],
         'sim_tmax': 5,
         'k_list': default.k_list,
@@ -439,9 +500,12 @@ def task_1(k, x_start_offset):
     sim.plot(mask=[1, 1, 0, 0])
 
 if __name__ == '__main__':
+    # Make sure there is a dir where we can save plots.
+    if not os.path.isdir(plot_folder):
+        os.makedirs(plot_folder)
     ##---- TASK 1 ----##
     task_1_k = 100
     task_1_start_offset = 0.1
 #    task_1(task_1_k, task_1_start_offset)
     ##----
-    run_simulations(show_plot=True)
+    run_simulations(show_plot=False)
