@@ -9,7 +9,7 @@ Created on Thu Jan  5 13:34:03 2017
 import scipy
 
 
-def res1(t, y, yp, sw):
+def res1(t, y, yd, sw):
     """
     y = [phi_s,     0
          phi_b,     1
@@ -22,7 +22,7 @@ def res1(t, y, yp, sw):
          lambda_1p, 8
          lambda_2p] 9
 
-    yp= [phi_sp,    0
+    yd= [phi_sp,    0
          phi_bp,    1
          zp,        2
          lambda_1p, 3
@@ -48,19 +48,19 @@ def res1(t, y, yp, sw):
     cp = 5.6e-3 # rotational spring constant [N/rad]
     g  = 9.81 #  [m/s^2]
 
-    res_1 = (mS + mB) * yp[7] + mB * lS * yp[5] + mB * lG * yp[6] +\
+    res_1 = (mS + mB) * yd[7] + mB * lS * yd[5] + mB * lG * yd[6] +\
         (mS + mB) * g
-    res_2 = mB * lS * yp[7] + (JS + mB * lS ** 2) * yp[5] +\
-        mB * lS * lG * yp[6] - cp * (y[1] - y[0]) + mB * lS * g + y[3]
-    res_3 = mB * lG * yp[7] + mB * lS * lG * yp[5] +\
-        (JB + mB * lG ** 2) * yp[6] - cp * (y[0] - y[1]) + mB * lG * g + y[4]
+    res_2 = mB * lS * yd[7] + (JS + mB * lS ** 2) * yd[5] +\
+        mB * lS * lG * yd[6] - cp * (y[1] - y[0]) + mB * lS * g + y[3]
+    res_3 = mB * lG * yd[7] + mB * lS * lG * yd[5] +\
+        (JB + mB * lG ** 2) * yd[6] - cp * (y[0] - y[1]) + mB * lG * g + y[4]
     res_4 = y[3]
     res_5 = y[4]
 
     return scipy.hstack((res_1, res_2, res_3, res_4, res_5)).flatten()
 
 
-def res2(t, y, yp, sw):
+def res2(t, y, yd, sw):
     """
     y = [phi_s,     0
          phi_b,     1
@@ -73,7 +73,7 @@ def res2(t, y, yp, sw):
          lambda_1p, 8
          lambda_2p] 9
 
-    yp= [phi_sp,    0
+    yd= [phi_sp,    0
          phi_bp,    1
          zp,        2
          lambda_1p, 3
@@ -99,20 +99,20 @@ def res2(t, y, yp, sw):
     cp = 5.6e-3 # rotational spring constant [N/rad]
     g  = 9.81 #  [m/s^2]
 
-    res_1 = (mS + mB) * yp[7] + mB * lS * yp[5] + mB * lG * yp[6] +\
+    res_1 = (mS + mB) * yd[7] + mB * lS * yd[5] + mB * lG * yd[6] +\
         (mS + mB) * g + y[4]
-    res_2 = mB * lS * yp[7] + (JS + mB * lS ** 2) * yp[5] +\
-        mB * lS * lG * yp[6] - cp * (y[1] - y[0]) + mB * lS * g + hS * y[3] +\
+    res_2 = mB * lS * yd[7] + (JS + mB * lS ** 2) * yd[5] +\
+        mB * lS * lG * yd[6] - cp * (y[1] - y[0]) + mB * lS * g + hS * y[3] +\
         rS * y[4]
-    res_3 = mB * lG * yp[7] + mB * lS * lG * yp[5] +\
-        (JB + mB * lG ** 2) * yp[6] - cp * (y[0] - y[1]) + mB * lG * g
+    res_3 = mB * lG * yd[7] + mB * lS * lG * yd[5] +\
+        (JB + mB * lG ** 2) * yd[6] - cp * (y[0] - y[1]) + mB * lG * g
     res_4 = rS - r0 + hS * y[0]
     res_5 = y[7] + rS * y[5]
 
     return scipy.hstack((res_1, res_2, res_3, res_4, res_5)).flatten()
 
 
-def res3(t, y, yp, sw):
+def res3(t, y, yd, sw):
     """
     y = [phi_s,     0
          phi_b,     1
@@ -125,7 +125,7 @@ def res3(t, y, yp, sw):
          lambda_1p, 8
          lambda_2p] 9
 
-    yp= [phi_sp,    0
+    yd= [phi_sp,    0
          phi_bp,    1
          zp,        2
          lambda_1p, 3
@@ -151,13 +151,13 @@ def res3(t, y, yp, sw):
     cp = 5.6e-3 # rotational spring constant [N/rad]
     g  = 9.81 #  [m/s^2]
 
-    res_1 = (mS + mB) * yp[7] + mB * lS * yp[5] + mB * lG * yp[6] +\
+    res_1 = (mS + mB) * yd[7] + mB * lS * yd[5] + mB * lG * yd[6] +\
         (mS + mB) * g + y[4]
-    res_2 = mB * lS * yp[7] + (JS + mB * lS ** 2) * yp[5] +\
-        mB * lS * lG * yp[6] - cp * (y[1] - y[0]) + mB * lS * g - hS * y[3] +\
+    res_2 = mB * lS * yd[7] + (JS + mB * lS ** 2) * yd[5] +\
+        mB * lS * lG * yd[6] - cp * (y[1] - y[0]) + mB * lS * g - hS * y[3] +\
         rS * y[4]
-    res_3 = mB * lG * yp[7] + mB * lS * lG * yp[5] +\
-        (JB + mB * lG ** 2) * yp[6] - cp * (y[0] - y[1]) + mB * lG * g
+    res_3 = mB * lG * yd[7] + mB * lS * lG * yd[5] +\
+        (JB + mB * lG ** 2) * yd[6] - cp * (y[0] - y[1]) + mB * lG * g
     res_4 = rS - r0 - hS * y[0]
     res_5 = y[7] + rS * y[5]
 
