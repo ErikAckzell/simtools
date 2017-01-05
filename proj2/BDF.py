@@ -6,6 +6,7 @@ import scipy.linalg as SL
 import scipy
 import unittest
 from assimulo.solvers import CVode
+from assimulo.solvers import RungeKutta34
 import squeezer_HsnppkU
 import step
 
@@ -427,23 +428,34 @@ if __name__ == '__main__':
 
     t0 = 0
 
-#    tol = 1.e-8
-#
-#    atol = scipy.hstack((scipy.array([tol] * 14),
-#                     scipy.array([1e5] * 2),
-#                     scipy.array([tol] * 4)))
-
-
     mod = Explicit_Problem(squeezer_HsnppkU.squeezer, y0, t0)
 
 
     sim = BDF(mod, 2, yp0=yp0)
 
     t, y = sim.simulate(0.03)
+#
+#    lamb = squeezer_HsnppkU.get_lambda()
+#
+#    print('last lambda: ', lamb)
 
-    lamb = squeezer_HsnppkU.get_lambda()
+    # task 8
+#    mod = Explicit_Problem(squeezer_HsnppkU.squeezer_explicit, y0, t0)
+#
+#
+#
+#    sim = RungeKutta34(mod)
+#
+#    t, y = sim.simulate(0.03)
 
-    print('last lambda: ', lamb)
+    mpl.plot(t, y[:, :7])
+
+    mpl.ylim([-0.8, 0.8])
+    mpl.xlim([0, 0.03])
+
+    mpl.grid()
+
+
 
 #    I, J = y.shape
 #
@@ -461,12 +473,7 @@ if __name__ == '__main__':
 
 #    mpl.close('all')
 
-    mpl.plot(t, y[:, :7])
 
-    mpl.ylim([-0.8, 0.8])
-    mpl.xlim([0, 0.03])
-
-    mpl.grid()
 
 #    mpl.close('all')
 
