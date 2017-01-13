@@ -16,6 +16,8 @@ import os
 plot_template_name = "{}.pdf"
 plot_folder = os.path.join("includes", "figures")
 
+global_figure_counter = 1
+
 # Class for default values.
 class DefaultData(object):
     """ Class that holds the default data for the tests. """
@@ -202,12 +204,11 @@ def run_simulations(show_plot=True):
 
     def get_subdim(permutations):
         """ Return grid coordinates for sub-figures based on permutations. """
-        len_row = 3
-        rows = int(permutations / len_row)
-        print("{}".format(rows))
-        if (permutations % len_row):
+        collumns = 3
+        rows = int(permutations / collumns)
+        if (permutations % collumns):
             rows += 1
-        return rows, len_row
+        return rows, collumns
 
     def run_permutations(test_case_group, show_plot):
         """ Possible variations:
@@ -228,11 +229,18 @@ def run_simulations(show_plot=True):
         permutations = len(k_list)*len(initial_values_list)*len(order_list)
 
         # Initialize subplot variables.
-        sp_dim_x, sp_dim_y = get_subdim(permutations)
+        sp_dim_row, sp_dim_col = get_subdim(permutations)
         current_subplot = 1 # Starts at one.
 
         # Make basis for one big plot.
-        fig = plt.figure(1)
+        global global_figure_counter
+
+        A4_inch_width = 8.3
+        row_hight_inch = 2.0
+
+        fig = plt.figure(global_figure_counter, figsize=(A4_inch_width,
+                         row_hight_inch*sp_dim_row))
+        global_figure_counter += 1
 
         # Iterate over all combinations of the changing variables listed above.
         for k_value in k_list:
@@ -272,13 +280,13 @@ def run_simulations(show_plot=True):
                                           sim_tmax,
                                           k_value,
                                           initial_values,
-                                          sp_dim_x,
-                                          sp_dim_y,
+                                          sp_dim_row,
+                                          sp_dim_col,
                                           current_subplot)
                     # Toggle plotting.
                     case.show_plot = show_plot
                     # Run the single test case.
-                    run_single_case(case)
+                    run_single_case(case, fig)
                     SEPARATE_OUTPUT()
                     current_subplot += 1
 
@@ -300,7 +308,7 @@ def run_simulations(show_plot=True):
         return first_line, second_line
 
 
-    def run_single_case(test_case):
+    def run_single_case(test_case, figure):
         """ Run a single test case. """
         # Get method defining right hand side of pendulum equation.
         pend_func = pend_rhs_function(test_case.k)
@@ -314,11 +322,12 @@ def run_simulations(show_plot=True):
         # Pick out the first and second value of y.
         first_line, second_line = filter_out_y(y)
         # Grab the subplot data.
-        sp_dim_x = test_case.sp_dim_x
-        sp_dim_y = test_case.sp_dim_y
+        sp_dim_row = test_case.sp_dim_row
+        sp_dim_col = test_case.sp_dim_col
         sp_current = test_case.current_subplot
         # Create new subplot.
-        subplot = plt.subplot(sp_dim_x, sp_dim_y, sp_current)
+        subplot = figure.add_subplot(sp_dim_row, sp_dim_col, sp_current,
+                                     adjustable='box')
         # Plot the different linet and add legend.
         plt.plot(t, first_line, label='x')
         plt.plot(t, second_line, label='y')
@@ -333,16 +342,16 @@ def run_simulations(show_plot=True):
 
     class SingleTestCase():
         """ Class representing a single BDF test case. """
-        def __init__(self, name, title, order, sim_tmax, k, init, sp_dim_x,
-                sp_dim_y, current_subplot):
+        def __init__(self, name, title, order, sim_tmax, k, init, sp_dim_row,
+                sp_dim_col, current_subplot):
             self.name = name
             self.title = title
             self.order = order
             self.sim_tmax = sim_tmax
             self.k = k
             self.init = init
-            self.sp_dim_x = sp_dim_x
-            self.sp_dim_y = sp_dim_y
+            self.sp_dim_row = sp_dim_row
+            self.sp_dim_col = sp_dim_col
             self.current_subplot = current_subplot
             self.plot = True
 
@@ -350,7 +359,7 @@ def run_simulations(show_plot=True):
     # Test order 4 BDF with varying k's.
     ord_4_var_k = {
         'name': "ord_4_var_k",
-        'title': "k={k}",
+        'title': "BDF: {order}, k={k}",
         'order_list': [4],
         'sim_tmax': 5,
         'k_list': default.k_list,
@@ -361,8 +370,7 @@ def run_simulations(show_plot=True):
     # Test varying order with k = 1000
     var_ord_k_1000 = {
         'name': "var_ord_k_1000",
-        'title': "k={k}",
-        'order_list': [4],
+        'title': "k: {k}, BDF-order: {order}",
         'order_list': default.order_list,
         'sim_tmax': 10,
         'k_list': [1000],
@@ -373,7 +381,6 @@ def run_simulations(show_plot=True):
     excited_pend_var_init = {
         'name': "excited_pend_var_init",
         'title': "{initial_values}",
-        'order_list': [4],
         'order_list': [4],
         'sim_tmax': 10,
         'k_list': [100],
