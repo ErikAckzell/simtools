@@ -367,7 +367,7 @@ def run_simulations(show_plot=True):
     # Test order 4 BDF with varying k's.
     ord_4_var_k = {
         'name': "ord_4_var_k",
-        'title': "k={k}.",
+        'title': "k={k}",
         'order_list': [4],
         'sim_tmax': 5,
         'k_list': default.k_list,
@@ -377,7 +377,9 @@ def run_simulations(show_plot=True):
 
     # Test varying order with k = 1000
     var_ord_k_1000 = {
-        'name': default.name,
+        'name': "var_ord_k_1000",
+        'title': "k={k}",
+        'order_list': [4],
         'order_list': default.order_list,
         'sim_tmax': 10,
         'k_list': [1000],
@@ -386,7 +388,9 @@ def run_simulations(show_plot=True):
 
     # Test excited pendulum for different initial values with k = 100.
     excited_pend_var_init = {
-        'name': default.name,
+        'name': "excited_pend_var_init",
+        'title': "k={k}",
+        'order_list': [4],
         'order_list': [4],
         'sim_tmax': 10,
         'k_list': [100],
