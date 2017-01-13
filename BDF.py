@@ -185,42 +185,11 @@ def pend_rhs_function(k):
 #!! Include end
 
 
-def find_factors(number):
-    """ Return the two factors of a small number by trial division. """
-
-    current_number = 2
-
-    factors = []
-    remainder = -1
-    temp = 0
-    prev_num = 0
-
-    i = 0
-    while(remainder != 0):
-        temp = int(number/current_number)
-        print(temp)
-        i += 1
-        if i == 5:
-            break
-        if (temp == 0):
-            factors.append(prev_num)
-            remainder = number-prev_num
-            continue
-        prev_num = temp
-        current_number += 1
-        print(current_number)
-        print(temp)
-        print(remainder)
-
-
-
 def run_simulations(show_plot=True):
     """ Method that runs all the defined simulations. """
 
     # Create default data.
     default = DefaultData()
-
-    print(find_factors(6))
 
     def INFO(string):
         """ Function that prints information to console."""
@@ -231,6 +200,14 @@ def run_simulations(show_plot=True):
         """ Separate output sections from each other. """
         print("{}\n\n".format(string))
 
+    def get_subdim(permutations):
+        """ Return grid coordinates for sub-figures based on permutations. """
+        len_row = 3
+        rows = int(permutations / len_row)
+        print("{}".format(rows))
+        if (permutations % len_row):
+            rows += 1
+        return rows, len_row
 
     def run_permutations(test_case_group, show_plot):
         """ Possible variations:
@@ -251,7 +228,7 @@ def run_simulations(show_plot=True):
         permutations = len(k_list)*len(initial_values_list)*len(order_list)
 
         # Initialize subplot variables.
-        subplot_dim = int((permutations/2)+0.5)
+        sp_dim_x, sp_dim_y = get_subdim(permutations)
         current_subplot = 1 # Starts at one.
 
         # Make basis for one big plot.
@@ -276,9 +253,12 @@ def run_simulations(show_plot=True):
                                            bdf_order))
 
                     # Assemble all values for title formatting.
+                    initial_fmt = "x: {:.2f}, y: {:.2f}"
+                    formated_initial = initial_fmt.format(initial_values[0],
+                                                          initial_values[1])
                     possible_title_values = {
                             'k': k_value,
-                            'initial_values': initial_values,
+                            'initial_values': formated_initial,
                             'order': bdf_order,
                             }
 
@@ -292,7 +272,8 @@ def run_simulations(show_plot=True):
                                           sim_tmax,
                                           k_value,
                                           initial_values,
-                                          subplot_dim,
+                                          sp_dim_x,
+                                          sp_dim_y,
                                           current_subplot)
                     # Toggle plotting.
                     case.show_plot = show_plot
@@ -333,10 +314,11 @@ def run_simulations(show_plot=True):
         # Pick out the first and second value of y.
         first_line, second_line = filter_out_y(y)
         # Grab the subplot data.
-        sp_dim = test_case.subplot_dim
+        sp_dim_x = test_case.sp_dim_x
+        sp_dim_y = test_case.sp_dim_y
         sp_current = test_case.current_subplot
         # Create new subplot.
-        subplot = plt.subplot(sp_dim, sp_dim, sp_current)
+        subplot = plt.subplot(sp_dim_x, sp_dim_y, sp_current)
         # Plot the different linet and add legend.
         plt.plot(t, first_line, label='x')
         plt.plot(t, second_line, label='y')
@@ -351,15 +333,16 @@ def run_simulations(show_plot=True):
 
     class SingleTestCase():
         """ Class representing a single BDF test case. """
-        def __init__(self, name, title, order, sim_tmax, k, init, subplot_dim,
-                current_subplot):
+        def __init__(self, name, title, order, sim_tmax, k, init, sp_dim_x,
+                sp_dim_y, current_subplot):
             self.name = name
             self.title = title
             self.order = order
             self.sim_tmax = sim_tmax
             self.k = k
             self.init = init
-            self.subplot_dim = subplot_dim
+            self.sp_dim_x = sp_dim_x
+            self.sp_dim_y = sp_dim_y
             self.current_subplot = current_subplot
             self.plot = True
 
@@ -389,7 +372,7 @@ def run_simulations(show_plot=True):
     # Test excited pendulum for different initial values with k = 100.
     excited_pend_var_init = {
         'name': "excited_pend_var_init",
-        'title': "k={k}",
+        'title': "{initial_values}",
         'order_list': [4],
         'order_list': [4],
         'sim_tmax': 10,
