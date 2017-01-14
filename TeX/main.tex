@@ -5,6 +5,7 @@
 \usepackage[T1]{fontenc}
 % Graphics.
 \usepackage{graphicx}
+\usepackage{float}
 % Maths
 \usepackage{amsmath}
 
@@ -51,11 +52,13 @@
 
     \subsection{Task 1}
 
-        Task 1 begins by defining the equations that describe the motion of an
-        elastic pendulum, where the bar is replaced with a spring with spring
-        constant $k$ and other attributes set to 1.
+%        Task 1 begins by defining the equations that describe the motion of an
+%        elastic pendulum, where the bar is replaced with a spring with spring
+%        constant $k$ and other attributes set to 1.
 
-
+        Task 1 requires a equation that describes the motion of an elastic
+        pendulum where the bar is replaced with a spring. The spring is given
+        the string constant $k$ with other attributes set to 1.
         \begin{flalign}
             & & & \dot{y_1} = y_3 & \\
             & & & \dot{y_2} = y_4 & \\
@@ -75,14 +78,19 @@
         \noindent
         \input{includes/code/task1.tex}
 
-        With the resulting plots:
+        With the resulting plot:
 
         % Include graphs for task 1.
+        \input{includes/figures/task_1.txt}
 
     \subsection{Task 2}
     \subsection{Task 3}
     \subsection{Task 4}
     \subsection{Task 5}
     \subsection{Task 6}
+
+    \input{includes/figures/var_ord_k_1000.txt}
+    \input{includes/figures/ord_4_var_k.txt}
+    \input{includes/figures/excited_pend_var_init.txt}
 
 \end{document}

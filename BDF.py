@@ -1,7 +1,6 @@
 from assimulo.explicit_ode import Explicit_ODE
 from assimulo.ode import *
 import numpy as np
-import matplotlib.pyplot as mpl
 import scipy.linalg as SL
 import scipy
 import unittest
@@ -14,9 +13,13 @@ import os
 
 # Variables for saving plots.
 plot_template_name = "{}.pdf"
-plot_folder = os.path.join("includes", "figures")
+plot_folder = os.path.join("TeX", "includes", "figures")
 
 global_figure_counter = 1
+
+# Global dimensions.
+A4_inch_width = 8.3
+row_hight_inch = 2.0
 
 # Class for default values.
 class DefaultData(object):
@@ -173,7 +176,6 @@ def pend_rhs_function(k):
     y: 1x4 array
     k: float
     """
-
     def pendulum_eq_rhs(t, y, k=k):
         yprime = scipy.array(
                      [y[2],
@@ -185,6 +187,28 @@ def pend_rhs_function(k):
         return yprime
     return pendulum_eq_rhs
 #!! Include end
+
+
+def generate_figure_latex(width_mod, name, caption=""):
+    """ Generate latex code for importing figure. """
+    frame = "\\begin{{figure}}[H]\n"+\
+            "   \\center"+\
+            "   \\includegraphics[width={}\\textwidth]{{{}}}\n"+\
+            "   {}\n"+\
+            "\\end{{figure}}\n"
+    if (caption):
+        caption = "   \\caption{{{}}}".format(caption)
+    return frame.format(width_mod, name, caption)
+
+def filter_out_y(y_vector_list):
+    """ Keep the first and second value of the vectors in the list. """
+    first_line = []
+    second_line = []
+    for y1, y2, _, _ in list(y_vector_list):
+        first_line.append(y1)
+        second_line.append(y2)
+    return first_line, second_line
+
 
 
 def run_simulations(show_plot=True):
@@ -232,11 +256,14 @@ def run_simulations(show_plot=True):
         sp_dim_row, sp_dim_col = get_subdim(permutations)
         current_subplot = 1 # Starts at one.
 
+        # Get width_mod if any.
+        width_mod = test_case_group.get('width_mod', '')
+
+        # Get caption, if any.
+        caption = test_case_group.get('caption', '')
+
         # Make basis for one big plot.
         global global_figure_counter
-
-        A4_inch_width = 8.3
-        row_hight_inch = 2.0
 
         fig = plt.figure(global_figure_counter, figsize=(A4_inch_width,
                          row_hight_inch*sp_dim_row))
@@ -296,17 +323,12 @@ def run_simulations(show_plot=True):
         # Use tight layout, otherwise the titles collide with the axis.
         plt.tight_layout()
         plt.savefig(plot_path)
-
-
-    def filter_out_y(y_vector_list):
-        """ Keep the first and second value of the vectors in the list. """
-        first_line = []
-        second_line = []
-        for y1, y2, _, _ in list(y_vector_list):
-            first_line.append(y1)
-            second_line.append(y2)
-        return first_line, second_line
-
+        # Generate latex code to import the figure.
+        latex_import = generate_figure_latex(width_mod, plot_path.replace("TeX/", ''),
+                                             caption)
+        latex_output = figure_filename.replace('.pdf','.txt')
+        with open(os.path.join(plot_folder, latex_output), 'w') as output:
+            output.write(latex_import)
 
     def run_single_case(test_case, figure):
         """ Run a single test case. """
@@ -342,8 +364,8 @@ def run_simulations(show_plot=True):
 
     class SingleTestCase():
         """ Class representing a single BDF test case. """
-        def __init__(self, name, title, order, sim_tmax, k, init, sp_dim_row,
-                sp_dim_col, current_subplot):
+        def __init__(self, name, title, order, sim_tmax, k, init,
+                sp_dim_row, sp_dim_col, current_subplot):
             self.name = name
             self.title = title
             self.order = order
@@ -362,6 +384,7 @@ def run_simulations(show_plot=True):
         'title': "BDF: {order}, k={k}",
         'order_list': [4],
         'sim_tmax': 5,
+        'caption': "Simulation for different values of k with BDF order 4.",
         'k_list': default.k_list,
         'init_value_list': default.init_list,
         'title_values': 'k_list'
@@ -374,6 +397,7 @@ def run_simulations(show_plot=True):
         'order_list': default.order_list,
         'sim_tmax': 10,
         'k_list': [1000],
+        'caption': "Simulation for different BDF orders, k = 1000.",
         'init_value_list': default.init_list,
         }
 
@@ -384,6 +408,8 @@ def run_simulations(show_plot=True):
         'order_list': [4],
         'sim_tmax': 10,
         'k_list': [100],
+        'width_mod': 1.0,
+        'caption': "Excited pendulum for different initial values with k = 100.",
         'init_value_list': [
             [default.x, default.y, 0, 0],
             [default.x+0.01, default.y, 0, 0],
@@ -415,7 +441,7 @@ def run_simulations(show_plot=True):
 #        exp_sim = BDF(pend_mod, order=order, corrector=corrector)
 #        t, y = exp_sim.simulate(10)
 #        exp_sim.plot(mask=[1, 1, 0, 0])
-#        mpl.show()
+#        plt.show()
 #
 #    def test_EE_k_influence(self):
 #        order = 1
@@ -428,7 +454,7 @@ def run_simulations(show_plot=True):
 #            exp_sim = BDF(pend_mod, order=order)
 #            t, y = exp_sim.simulate(10)
 #            exp_sim.plot(mask=[1, 1, 0, 0])
-#            mpl.show()
+#            plt.show()
 #
 # ========================================
 #  CVODE
@@ -460,7 +486,7 @@ def run_simulations(show_plot=True):
 #                    sim.rtol = rtol
 #                    t, y = sim.simulate(10)
 #                    sim.plot(mask=[1, 1, 0, 0])
-#                    mpl.show()
+#                    plt.show()
 #
 #    def test_CVode_k_influence(self):
 #        phi = 2 * scipy.pi - 0.3
@@ -476,7 +502,7 @@ def run_simulations(show_plot=True):
 #            sim = CVode(mod)
 #            t, y = sim.simulate(10)
 #            sim.plot(mask=[1, 1, 0, 0])
-#            mpl.show()
+#            plt.show()
 
 def task_1(k, x_start_offset):
     """ Method that performs and plots the first task from project 1. """
@@ -489,9 +515,30 @@ def task_1(k, x_start_offset):
 
     mod = Explicit_Problem(pend_rhs_function(k), y0, t0, k)
 
+    div = 2
+    fig = plt.figure(-1, figsize=(A4_inch_width/div, A4_inch_width/(2*div)))
     sim = CVode(mod)
     t, y = sim.simulate(10)
-    sim.plot(mask=[1, 1, 0, 0])
+    first_line, second_line = filter_out_y(y)
+    plt.plot(t, first_line, label='x')
+    plt.plot(t, second_line, label='y')
+    plt.legend(loc='upper right', frameon=False)
+
+    figure_name = "task_1"
+    figure_filename = "{}.pdf".format(figure_name)
+
+#    fig.suptitle("Task 1: Pendulum with RHS and CVODE.")
+    plot_path = os.path.join(plot_folder, figure_filename)
+    plt.savefig(plot_path)
+
+    width_mod = 0.6
+    caption = "Pendulum simulation with RHS and CVODE."
+
+    latex_import = generate_figure_latex(width_mod, plot_path.replace("TeX/", ''),
+                                         caption)
+    latex_output = figure_filename.replace('.pdf','.txt')
+    with open(os.path.join(plot_folder, latex_output), 'w') as output:
+        output.write(latex_import)
 
 if __name__ == '__main__':
     # Make sure there is a dir where we can save plots.
@@ -500,6 +547,6 @@ if __name__ == '__main__':
     ##---- TASK 1 ----##
     task_1_k = 100
     task_1_start_offset = 0.1
-#    task_1(task_1_k, task_1_start_offset)
+    task_1(task_1_k, task_1_start_offset)
     ##----
-    run_simulations(show_plot=False)
+#    run_simulations(show_plot=False)
