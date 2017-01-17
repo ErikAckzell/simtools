@@ -377,6 +377,35 @@ def run_simulations(show_plot=True):
             self.current_subplot = current_subplot
             self.plot = True
 
+    # Task 3, testing slightly stretched spring with BDF-2,3,4 method for
+    # various values of k.
+
+    delta_x = 0.2
+
+    def get_name(order):
+        """ Substitute BDF-1 with EE, since it uses explicit Euler."""
+        if (order == 1):
+            return "EE"
+        else:
+            return "BDF-{}".format(order)
+
+    def task3(order):
+        """ Return dictionary for generating figures for task 3 with different
+        BDF orders. """
+        fmt_caption = "Simulation done by {} for different values of k, with "+\
+                      "$x_{{init}}$={:.2f}."
+        return {
+            'name': "task3_ord{}".format(order),
+            'title': "BDF-{}, k: {{k}}.".format(order),
+            'order_list': [order],
+            'sim_tmax': 8,
+            'caption': fmt_caption.format(get_name(order), default.x+delta_x),
+            'k_list': default.k_list,
+            'init_value_list': [[default.x+delta_x, default.y, 0, 0]],
+            'title_values': "",
+        }
+
+    task3_simulations = [task3(order) for order in range(1,5)]
 
     # Test order 4 BDF with varying k's.
     ord_4_var_k = {
@@ -419,9 +448,10 @@ def run_simulations(show_plot=True):
     }
 
     test_cases = [
-            ord_4_var_k,
-            var_ord_k_1000,
-            excited_pend_var_init,
+#            ord_4_var_k,
+#            var_ord_k_1000,
+#            excited_pend_var_init,
+            *task3_simulations,
             ]
 
     for case_dict in test_cases:
@@ -549,4 +579,4 @@ if __name__ == '__main__':
     task_1_start_offset = 0.1
     task_1(task_1_k, task_1_start_offset)
     ##----
-#    run_simulations(show_plot=False)
+    run_simulations(show_plot=False)
