@@ -5,6 +5,7 @@ code_marker = "#!! Include:"
 code_marker_end = "#!! Include end"
 code_files = [
             "BDF.py",
+            "step.py",
         ]
 
 # Where to put the *.tex files.
