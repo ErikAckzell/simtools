@@ -19,7 +19,7 @@ global_figure_counter = 1
 
 # Global dimensions.
 A4_inch_width = 8.3
-row_hight_inch = 2.0
+row_inch_height = 2.0
 
 # Class for default values.
 class DefaultData(object):
@@ -266,7 +266,7 @@ def run_simulations(show_plot=True):
         global global_figure_counter
 
         fig = plt.figure(global_figure_counter, figsize=(A4_inch_width,
-                         row_hight_inch*sp_dim_row))
+                         row_inch_height*sp_dim_row))
         global_figure_counter += 1
 
         # Iterate over all combinations of the changing variables listed above.
