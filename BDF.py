@@ -248,6 +248,7 @@ def run_simulations(show_plot=True):
         k_list = test_case_group.get('k_list')
         initial_values_list = test_case_group.get('init_value_list')
         order_list = test_case_group.get('order_list')
+        type = test_case_group.get('type')
 
         # Number of permutations.
         permutations = len(k_list)*len(initial_values_list)*len(order_list)
@@ -304,6 +305,7 @@ def run_simulations(show_plot=True):
                     case = SingleTestCase(name,
                                           title,
                                           bdf_order,
+                                          type,
                                           sim_tmax,
                                           k_value,
                                           initial_values,
@@ -338,7 +340,11 @@ def run_simulations(show_plot=True):
         pend_mod = Explicit_Problem(pend_func, y0=test_case.init)
         pend_mod.name = test_case.name
         # Create BDF solver.
-        exp_sim = BDF(pend_mod, order=test_case.order)
+        exp_sim = ""
+        if test_case.type == "BDF":
+            exp_sim = BDF(pend_mod, order=test_case.order)
+        elif test_case.type == "CVODE":
+            exp_sim = CVode(pend_mod)
         # Run the simulation.
         t, y = exp_sim.simulate(test_case.sim_tmax)
         # Pick out the first and second value of y.
@@ -364,11 +370,12 @@ def run_simulations(show_plot=True):
 
     class SingleTestCase():
         """ Class representing a single BDF test case. """
-        def __init__(self, name, title, order, sim_tmax, k, init,
+        def __init__(self, name, title, order, type, sim_tmax, k, init,
                 sp_dim_row, sp_dim_col, current_subplot):
             self.name = name
             self.title = title
             self.order = order
+            self.type = type
             self.sim_tmax = sim_tmax
             self.k = k
             self.init = init
@@ -389,23 +396,39 @@ def run_simulations(show_plot=True):
         else:
             return "BDF-{}".format(order)
 
-    def task3(order):
-        """ Return dictionary for generating figures for task 3 with different
-        BDF orders. """
-        fmt_caption = "Simulation done by {} for different values of k, with "+\
-                      "$x_{{init}}$={:.2f}."
+    def generate_plots_different_k(opt_dict):
+        """ Return dictionary for generating figures for task 3/4 using BDF or
+        CVode. """
         return {
-            'name': "task3_ord{}".format(order),
-            'title': "BDF-{}, k: {{k}}.".format(order),
-            'order_list': [order],
+            'name': opt_dict.get('name'),
+            'title': opt_dict.get('title'),
+            'order_list': opt_dict.get('order', [0]),
+            'type': opt_dict.get('type', "BDF"),
             'sim_tmax': 8,
-            'caption': fmt_caption.format(get_name(order), default.x+delta_x),
+            'caption': opt_dict.get('caption'),
             'k_list': default.k_list,
             'init_value_list': [[default.x+delta_x, default.y, 0, 0]],
             'title_values': "",
         }
 
-    task3_simulations = [task3(order) for order in range(1,5)]
+
+    # Generate test cases for task 3.
+    fmt_caption = "Simulation done by {} for different values of k, with "+\
+                  "$x_{{init}}$={:.2f}."
+    start_x = default.x+delta_x
+    task3_simulations = []
+    for order in range(1,5):
+        task3_opts = {
+                'order': [order],
+                'caption': fmt_caption.format(get_name(order), start_x),
+                'title': "BDF-{}, k: {{k}}.".format(order),
+                'type': "BDF",
+                }
+        task3_simulations.append(generate_plots_different_k(task3_opts))
+
+    # Generate test cases for task 3.
+    #task4_simulations = generate_plots_different_k(1, "CVODE",
+    #                                               name="CVODE_var_k")
 
     # Test order 4 BDF with varying k's.
     ord_4_var_k = {
@@ -548,7 +571,7 @@ def task_1(k, x_start_offset):
     div = 2
     fig = plt.figure(-1, figsize=(A4_inch_width/div, A4_inch_width/(2*div)))
     sim = CVode(mod)
-    t, y = sim.simulate(10)
+    t, y = sim.simulate(8)
     first_line, second_line = filter_out_y(y)
     plt.plot(t, first_line, label='x')
     plt.plot(t, second_line, label='y')
