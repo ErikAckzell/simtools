@@ -13,7 +13,7 @@ __pycache__
 *.log
 
 # Ignore main pdf file.
-TeX/fmnn05.pdf
+TeX/*.pdf
 
 # Ignore generated tex includes.
 TeX/includes
