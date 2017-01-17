@@ -189,7 +189,7 @@ def pend_rhs_function(k):
 #!! Include end
 
 
-def generate_figure_latex(width_mod, name, caption=""):
+def latex_get_figure_frame(width_mod, name, caption=""):
     """ Generate latex code for importing figure. """
     frame = "\\begin{{figure}}[H]\n"+\
             "   \\center"+\
@@ -324,7 +324,7 @@ def run_simulations(show_plot=True):
         plt.tight_layout()
         plt.savefig(plot_path)
         # Generate latex code to import the figure.
-        latex_import = generate_figure_latex(width_mod, plot_path.replace("TeX/", ''),
+        latex_import = latex_get_figure_frame(width_mod, plot_path.replace("TeX/", ''),
                                              caption)
         latex_output = figure_filename.replace('.pdf','.txt')
         with open(os.path.join(plot_folder, latex_output), 'w') as output:
@@ -534,8 +534,8 @@ def task_1(k, x_start_offset):
     width_mod = 0.6
     caption = "Pendulum simulation with RHS and CVODE."
 
-    latex_import = generate_figure_latex(width_mod, plot_path.replace("TeX/", ''),
-                                         caption)
+    latex_import = latex_get_figure_frame(width_mod, plot_path.replace("TeX/", ''),
+                                          caption)
     latex_output = figure_filename.replace('.pdf','.txt')
     with open(os.path.join(plot_folder, latex_output), 'w') as output:
         output.write(latex_import)
