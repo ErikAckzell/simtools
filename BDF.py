@@ -234,7 +234,7 @@ def run_simulations(show_plot=True):
             rows += 1
         return rows, collumns
 
-    def run_permutations(test_case_group, show_plot):
+    def run_permutations(test_case, show_plot):
         """ Possible variations:
                 - k-values.
                 - initial values.
@@ -242,13 +242,13 @@ def run_simulations(show_plot=True):
         """
 
         # Get title format.
-        inner_title_format = test_case_group.get('title')
+        inner_title_format = test_case.get('title')
 
         # Get all varying variables.
-        k_list = test_case_group.get('k_list')
-        initial_values_list = test_case_group.get('init_value_list')
-        order_list = test_case_group.get('order_list')
-        type = test_case_group.get('type')
+        k_list = test_case.get('k_list')
+        initial_values_list = test_case.get('init_value_list')
+        order_list = test_case.get('order_list')
+        type = test_case.get('type')
 
         # Number of permutations.
         permutations = len(k_list)*len(initial_values_list)*len(order_list)
@@ -258,10 +258,10 @@ def run_simulations(show_plot=True):
         current_subplot = 1 # Starts at one.
 
         # Get width_mod if any.
-        width_mod = test_case_group.get('width_mod', '')
+        width_mod = test_case.get('width_mod', '')
 
         # Get caption, if any.
-        caption = test_case_group.get('caption', '')
+        caption = test_case.get('caption', '')
 
         # Make basis for one big plot.
         global global_figure_counter
@@ -275,8 +275,8 @@ def run_simulations(show_plot=True):
             for initial_values in initial_values_list:
                 for bdf_order in order_list:
                     # Gather missing data.
-                    name = test_case_group.get('name')
-                    sim_tmax = test_case_group.get('sim_tmax')
+                    name = test_case.get('name')
+                    sim_tmax = test_case.get('sim_tmax')
 
 
                     # Construct information string.
@@ -311,7 +311,8 @@ def run_simulations(show_plot=True):
                                           initial_values,
                                           sp_dim_row,
                                           sp_dim_col,
-                                          current_subplot)
+                                          current_subplot,
+                                          test_case)
                     # Toggle plotting.
                     case.show_plot = show_plot
                     # Run the single test case.
@@ -344,7 +345,17 @@ def run_simulations(show_plot=True):
         if test_case.type == "BDF":
             exp_sim = BDF(pend_mod, order=test_case.order)
         elif test_case.type == "CVODE":
+            test_case_dict = test_case.test_case
             exp_sim = CVode(pend_mod)
+            atol = test_case_dict.get('cvode_atol')
+            rtol = test_case_dict.get('cvode_rtol')
+            maxorder = test_case_dict.get('maxorder')
+            if atol: # Set CVode atol value.
+                exp_sim.atol = atol
+            if rtol: # Set CVode rtol value.
+                exp_sim.rtol = rtol
+            if maxorder: # Set CVode maxorder.
+                exp_sim.maxorder = maxorder
         # Run the simulation.
         t, y = exp_sim.simulate(test_case.sim_tmax)
         # Pick out the first and second value of y.
@@ -371,7 +382,7 @@ def run_simulations(show_plot=True):
     class SingleTestCase():
         """ Class representing a single BDF test case. """
         def __init__(self, name, title, order, type, sim_tmax, k, init,
-                sp_dim_row, sp_dim_col, current_subplot):
+                sp_dim_row, sp_dim_col, current_subplot, test_case):
             self.name = name
             self.title = title
             self.order = order
@@ -383,6 +394,7 @@ def run_simulations(show_plot=True):
             self.sp_dim_col = sp_dim_col
             self.current_subplot = current_subplot
             self.plot = True
+            self.test_case = test_case
 
     # Task 3, testing slightly stretched spring with BDF-2,3,4 method for
     # various values of k.
@@ -409,6 +421,9 @@ def run_simulations(show_plot=True):
             'k_list': default.k_list,
             'init_value_list': [[default.x+delta_x, default.y, 0, 0]],
             'title_values': "",
+            'cvode_atol': opt_dict.get('atol'),
+            'cvode_rtol': opt_dict.get('rtol'),
+            'cvode_maxorder': opt_dict.get('maxorder'),
         }
 
 
@@ -427,15 +442,43 @@ def run_simulations(show_plot=True):
                 }
         task3_simulations.append(generate_plots_different_k(task3_opts))
 
-    # Generate test cases for task 4.
-    fmt_caption = "Simulation for varying k with CVODE, with $x_{{{}}}$."
+    # Generate test cases for task 4 with default values of atol, rtol and
+    # maxorder.
+    fmt = "Simulation for varying k with CVODE, with $x_{{init}}$={:.2f}."
     task4_opts = {
                 'name': "CVODE_var_k",
-                'caption': fmt_caption.format(start_x),
+                'caption': fmt.format(start_x),
                 'title': "CVODE, k: {k}.",
                 'type': "CVODE",
             }
-    task4_simulations = generate_plots_different_k(task4_opts)
+    task4_simulations = []
+    task4_simulations.append(generate_plots_different_k(task4_opts))
+
+    def linfill(a, b, num):
+        """ linfill num values between a and b. """
+
+        def float_range(a, b, step):
+            """ Range for floats, not including b. """
+            while a <= b:
+                yield a
+                a += step
+
+        diff = b-a
+        step = diff/(num)
+        return float_range(a, b, step)
+
+    # Add output for different CVODE atol values.
+    for index, atol in enumerate(linfill(1e-2, 1, 4)):
+        fmt = "Simulation for varying k with CVODE, with"+\
+              " $x_{{init}}$={:.2f}, atol={:.2f}."
+        task4_opts = {
+                    'name': "CVODE_atol_{}".format(index),
+                    'caption': fmt.format(start_x, atol),
+                    'title': "k: {{k}}, atol: {:.2f}.".format(atol),
+                    'type': "CVODE",
+                    'atol': atol,
+                }
+        task4_simulations.append(generate_plots_different_k(task4_opts))
 
     # Test order 4 BDF with varying k's.
     ord_4_var_k = {
@@ -481,8 +524,8 @@ def run_simulations(show_plot=True):
 #            ord_4_var_k,
 #            var_ord_k_1000,
 #            excited_pend_var_init,
-            *task3_simulations,
-            task4_simulations,
+#            *task3_simulations,
+            *task4_simulations,
             ]
 
     for case_dict in test_cases:
