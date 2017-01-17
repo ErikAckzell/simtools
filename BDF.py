@@ -419,6 +419,7 @@ def run_simulations(show_plot=True):
     task3_simulations = []
     for order in range(1,5):
         task3_opts = {
+                'name': "task3_ord{}".format(order),
                 'order': [order],
                 'caption': fmt_caption.format(get_name(order), start_x),
                 'title': "BDF-{}, k: {{k}}.".format(order),
@@ -426,9 +427,15 @@ def run_simulations(show_plot=True):
                 }
         task3_simulations.append(generate_plots_different_k(task3_opts))
 
-    # Generate test cases for task 3.
-    #task4_simulations = generate_plots_different_k(1, "CVODE",
-    #                                               name="CVODE_var_k")
+    # Generate test cases for task 4.
+    fmt_caption = "Simulation for varying k with CVODE, with $x_{{{}}}$."
+    task4_opts = {
+                'name': "CVODE_var_k",
+                'caption': fmt_caption.format(start_x),
+                'title': "CVODE, k: {k}.",
+                'type': "CVODE",
+            }
+    task4_simulations = generate_plots_different_k(task4_opts)
 
     # Test order 4 BDF with varying k's.
     ord_4_var_k = {
@@ -475,6 +482,7 @@ def run_simulations(show_plot=True):
 #            var_ord_k_1000,
 #            excited_pend_var_init,
             *task3_simulations,
+            task4_simulations,
             ]
 
     for case_dict in test_cases:
