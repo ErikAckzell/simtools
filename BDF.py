@@ -349,6 +349,7 @@ def run_simulations(show_plot=True):
             exp_sim = CVode(pend_mod)
             atol = test_case_dict.get('cvode_atol')
             rtol = test_case_dict.get('cvode_rtol')
+            discretization = test_case_dict.get('cvode_discretization')
             maxorder = test_case_dict.get('cvode_maxorder')
             if atol: # Set CVode atol value.
                 exp_sim.atol = atol
@@ -356,6 +357,8 @@ def run_simulations(show_plot=True):
                 exp_sim.rtol = rtol
             if maxorder: # Set CVode maxorder.
                 exp_sim.maxord = maxorder
+            if discretization: # Set CVode discretization.
+                exp_sim.discr = discretization
         # Run the simulation.
         t, y = exp_sim.simulate(test_case.sim_tmax)
         # Pick out the first and second value of y.
@@ -424,6 +427,7 @@ def run_simulations(show_plot=True):
             'cvode_atol': opt_dict.get('atol'),
             'cvode_rtol': opt_dict.get('rtol'),
             'cvode_maxorder': opt_dict.get('maxorder'),
+            'cvode_discretization': opt_dict.get('discretization'),
         }
 
 
@@ -505,6 +509,19 @@ def run_simulations(show_plot=True):
                     'title': "k: {{k}}, maxorder: {}.".format(maxorder),
                     'type': "CVODE",
                     'maxorder': maxorder,
+                }
+        task4_simulations.append(generate_plots_different_k(task4_opts))
+
+    # Task4: Run default values for BDF and Adams.
+    for index, discretization in enumerate(['BDF','Adams']):
+        fmt = "Simulation for varying k with CVODE using {}, with"+\
+              " $x_{{init}}$={:.2f}."
+        task4_opts = {
+                    'name': "CVODE_discretization_{}".format(index),
+                    'caption': fmt.format(discretization, start_x),
+                    'title': "{} - k: {{k}}.".format(discretization),
+                    'type': "CVODE",
+                    'discretization': discretization,
                 }
         task4_simulations.append(generate_plots_different_k(task4_opts))
 
