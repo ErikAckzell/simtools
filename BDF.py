@@ -433,11 +433,12 @@ def run_simulations(show_plot=True):
     start_x = default.x+delta_x
     task3_simulations = []
     for order in range(1,5):
+        name = get_name(order)
         task3_opts = {
                 'name': "task3_ord{}".format(order),
                 'order': [order],
-                'caption': fmt_caption.format(get_name(order), start_x),
-                'title': "BDF-{}, k: {{k}}.".format(order),
+                'caption': fmt_caption.format(name, start_x),
+                'title': "{}, k: {{k}}.".format(name),
                 'type': "BDF",
                 }
         task3_simulations.append(generate_plots_different_k(task3_opts))
@@ -464,7 +465,7 @@ def run_simulations(show_plot=True):
                 a += step
 
         diff = b-a
-        step = diff/(num)
+        step = diff/(num-1)
         return float_range(a, b, step)
 
     # Add output for different CVODE atol values.
@@ -524,7 +525,7 @@ def run_simulations(show_plot=True):
 #            ord_4_var_k,
 #            var_ord_k_1000,
 #            excited_pend_var_init,
-#            *task3_simulations,
+            *task3_simulations,
             *task4_simulations,
             ]
 
@@ -613,8 +614,9 @@ def task_1(k, x_start_offset):
 
     phi = 2 * scipy.pi - 0.3
     x = scipy.cos(phi)
-    y = scipy.sin(phi)
-    y0 = scipy.array([x + x_start_offset, y, 0, 0])
+    y_start = scipy.sin(phi)
+    x_start = x+x_start_offset
+    y0 = scipy.array([x_start, y_start, 0, 0])
     t0 = 0
 
     mod = Explicit_Problem(pend_rhs_function(k), y0, t0, k)
@@ -636,7 +638,9 @@ def task_1(k, x_start_offset):
     plt.savefig(plot_path)
 
     width_mod = 0.6
-    caption = "Pendulum simulation with RHS and CVODE."
+    caption = "Pendulum simulation with RHS and CVODE, "+\
+              "$x_{{init}}$={:.2f}, $y_{{init}}$={:.2f}.".format(x_start,
+                                                                 y_start)
 
     latex_import = latex_get_figure_frame(width_mod, plot_path.replace("TeX/", ''),
                                           caption)
