@@ -349,13 +349,13 @@ def run_simulations(show_plot=True):
             exp_sim = CVode(pend_mod)
             atol = test_case_dict.get('cvode_atol')
             rtol = test_case_dict.get('cvode_rtol')
-            maxorder = test_case_dict.get('maxorder')
+            maxorder = test_case_dict.get('cvode_maxorder')
             if atol: # Set CVode atol value.
                 exp_sim.atol = atol
             if rtol: # Set CVode rtol value.
                 exp_sim.rtol = rtol
             if maxorder: # Set CVode maxorder.
-                exp_sim.maxorder = maxorder
+                exp_sim.maxord = maxorder
         # Run the simulation.
         t, y = exp_sim.simulate(test_case.sim_tmax)
         # Pick out the first and second value of y.
@@ -468,7 +468,7 @@ def run_simulations(show_plot=True):
         step = diff/(num-1)
         return float_range(a, b, step)
 
-    # Add output for different CVODE atol values.
+    # Task4: Add output for different CVODE atol values.
     for index, atol in enumerate(linfill(1e-2, 1, 4)):
         fmt = "Simulation for varying k with CVODE, with"+\
               " $x_{{init}}$={:.2f}, atol={:.2f}."
@@ -478,6 +478,33 @@ def run_simulations(show_plot=True):
                     'title': "k: {{k}}, atol: {:.2f}.".format(atol),
                     'type': "CVODE",
                     'atol': atol,
+                }
+        task4_simulations.append(generate_plots_different_k(task4_opts))
+
+    # Task4: Add output for different CVODE rtol values.
+    for index, rtol in enumerate(linfill(0, 1, 4)):
+        fmt = "Simulation for varying k with CVODE, with"+\
+              " $x_{{init}}$={:.2f}, rtol={:.2f}."
+        task4_opts = {
+                    'name': "CVODE_rtol_{}".format(index),
+                    'caption': fmt.format(start_x, rtol),
+                    'title': "k: {{k}}, rtol: {:.2f}.".format(rtol),
+                    'type': "CVODE",
+                    'rtol': rtol,
+                }
+        task4_simulations.append(generate_plots_different_k(task4_opts))
+
+    # Task4: Add output for different CVODE maxord values.
+    for index, maxorder in enumerate([1,2,5]):
+        maxorder = int(maxorder)
+        fmt = "Simulation for varying k with CVODE, with"+\
+              " $x_{{init}}$={:.2f}, maxorder={}."
+        task4_opts = {
+                    'name': "CVODE_maxorder_{}".format(index),
+                    'caption': fmt.format(start_x, maxorder),
+                    'title': "k: {{k}}, maxorder: {}.".format(maxorder),
+                    'type': "CVODE",
+                    'maxorder': maxorder,
                 }
         task4_simulations.append(generate_plots_different_k(task4_opts))
 
@@ -525,7 +552,7 @@ def run_simulations(show_plot=True):
 #            ord_4_var_k,
 #            var_ord_k_1000,
 #            excited_pend_var_init,
-            *task3_simulations,
+#            *task3_simulations,
             *task4_simulations,
             ]
 
