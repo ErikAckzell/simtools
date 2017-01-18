@@ -1,15 +1,18 @@
 from assimulo.explicit_ode import Explicit_ODE
 from assimulo.ode import *
-import numpy as np
-import scipy.linalg as SL
-import scipy
-import unittest
 from assimulo.solvers import CVode
+from io import StringIO
 
 import matplotlib.pyplot as plt
-
-import step
+import numpy as np
 import os
+import scipy.linalg as SL
+import scipy
+import step
+import sys
+import unittest
+
+
 
 # Variables for saving plots.
 plot_template_name = "{}.pdf"
@@ -111,61 +114,61 @@ class BDF(Explicit_ODE):
         return ID_PY_OK, tres, yres
 
 
-    def get_statistics(self):
-        """ Gather statistics and return them as a string. """
-
-        # Gather necessary information.
-        name = self.problem.name
-        stepsize = self.options["h"]
-        num_steps = str(self.statistics['nsteps'])
-        num_func_eval = str(self.statistics['nfcns'])
-        order = self.order
-
-        def heading(string):
-            """ Return if the string is a heading. """
-            return not string.startswith(' ')
-
-        def get_padded_format(string):
-            """ Return dynamically padded format string. """
-            if heading(string): # No padding on headings.
-                return string
-            # Only count length to the first ':'.
-            current_len = len(string.split(':')[0])
-            len_diff = max_len - current_len
-            # Only add padding in front of the first ':'.
-            string = string.replace(':', "{}:".format(len_diff*' '), 1)
-            return string
-
-        message_primitives = [
-                    ("Final Run Statistics: {}", name),
-                    ("  Step-length: {}", stepsize),
-                    ("  Number of Steps: {}", num_steps),
-                    ("  Number of Function Evaluations: {}", num_steps),
-                    ("", ""), # newline.
-                    ("Solver options:", ""),
-                    ("  Solver: BDF: {}", order),
-                    ("  Solver type: Fixed step.", "" ),
-                ]
-
-        # Get maximum length of the formatting strings.
-        max_len = max([len(format_string) for (format_string, _) in
-            message_primitives])
-        # Add two.
-        max_len += 2
-
-        # Iterate over all message primitives and append to buffer.
-        string_buffer = []
-        for format_string, data in message_primitives:
-            final_format = get_padded_format(format_string)
-            string_buffer.append(final_format.format(data))
-
-        # Return buffer as a string.
-        return '\n'.join(string_buffer)
-
-
-    def print_statistics(self, verbose=NORMAL):
-        """ Use get_statistics() method and send to logger. """
-        self.log_message(self.get_statistics(), verbose)
+#    def get_statistics(self):
+#        """ Gather statistics and return them as a string. """
+#
+#        # Gather necessary information.
+#        name = self.problem.name
+#        stepsize = self.options["h"]
+#        num_steps = str(self.statistics['nsteps'])
+#        num_func_eval = str(self.statistics['nfcns'])
+#        order = self.order
+#
+#        def heading(string):
+#            """ Return if the string is a heading. """
+#            return not string.startswith(' ')
+#
+#        def get_padded_format(string):
+#            """ Return dynamically padded format string. """
+#            if heading(string): # No padding on headings.
+#                return string
+#            # Only count length to the first ':'.
+#            current_len = len(string.split(':')[0])
+#            len_diff = max_len - current_len
+#            # Only add padding in front of the first ':'.
+#            string = string.replace(':', "{}:".format(len_diff*' '), 1)
+#            return string
+#
+#        message_primitives = [
+#                    ("Final Run Statistics: {}", name),
+#                    ("  Step-length: {}", stepsize),
+#                    ("  Number of Steps: {}", num_steps),
+#                    ("  Number of Function Evaluations: {}", num_steps),
+#                    ("", ""), # newline.
+#                    ("Solver options:", ""),
+#                    ("  Solver: BDF: {}", order),
+#                    ("  Solver type: Fixed step.", "" ),
+#                ]
+#
+#        # Get maximum length of the formatting strings.
+#        max_len = max([len(format_string) for (format_string, _) in
+#            message_primitives])
+#        # Add two.
+#        max_len += 2
+#
+#        # Iterate over all message primitives and append to buffer.
+#        string_buffer = []
+#        for format_string, data in message_primitives:
+#            final_format = get_padded_format(format_string)
+#            string_buffer.append(final_format.format(data))
+#
+#        # Return buffer as a string.
+#        return '\n'.join(string_buffer)
+#
+#
+#    def print_statistics(self, verbose=NORMAL):
+#        """ Use get_statistics() method and send to logger. """
+#        self.log_message(self.get_statistics(), verbose)
 
 
 #!! Include: task1
@@ -234,7 +237,7 @@ def run_simulations(show_plot=True):
             rows += 1
         return rows, collumns
 
-    def run_permutations(test_case, show_plot):
+    def run_permutations(test_case, statistics, show_plot):
         """ Possible variations:
                 - k-values.
                 - initial values.
@@ -269,6 +272,9 @@ def run_simulations(show_plot=True):
         fig = plt.figure(global_figure_counter, figsize=(A4_inch_width,
                          row_inch_height*sp_dim_row))
         global_figure_counter += 1
+
+        # Create list for appending runtime statistics.
+        stat_list = statistics[test_case.get('name')] = []
 
         # Iterate over all combinations of the changing variables listed above.
         for k_value in k_list:
@@ -316,7 +322,7 @@ def run_simulations(show_plot=True):
                     # Toggle plotting.
                     case.show_plot = show_plot
                     # Run the single test case.
-                    run_single_case(case, fig)
+                    run_single_case(case, fig, stat_list)
                     SEPARATE_OUTPUT()
                     current_subplot += 1
 
@@ -333,7 +339,7 @@ def run_simulations(show_plot=True):
         with open(os.path.join(plot_folder, latex_output), 'w') as output:
             output.write(latex_import)
 
-    def run_single_case(test_case, figure):
+    def run_single_case(test_case, figure, stat_list):
         """ Run a single test case. """
         # Get method defining right hand side of pendulum equation.
         pend_func = pend_rhs_function(test_case.k)
@@ -359,8 +365,15 @@ def run_simulations(show_plot=True):
                 exp_sim.maxord = maxorder
             if discretization: # Set CVode discretization.
                 exp_sim.discr = discretization
+        # Redirect stdout.
+        old_sys_out = sys.stdout
+        sys.stdout = StringIO()
         # Run the simulation.
         t, y = exp_sim.simulate(test_case.sim_tmax)
+        # Append stats to stat_list.
+        simulation_stats = exp_sim.get_statistics()
+        stat_list.append(simulation_stats)
+        print(simulation_stats.keys())
         # Pick out the first and second value of y.
         first_line, second_line = filter_out_y(y)
         # Grab the subplot data.
@@ -380,6 +393,8 @@ def run_simulations(show_plot=True):
         # Should we show the plot?
         if test_case.show_plot:
             plt.show()
+        # Restore stdout.
+        sys.stdout = old_sys_out
 
 
     class SingleTestCase():
@@ -573,8 +588,9 @@ def run_simulations(show_plot=True):
             *task4_simulations,
             ]
 
+    statistics = {}
     for case_dict in test_cases:
-        run_permutations(case_dict, show_plot)
+        run_permutations(case_dict, statistics, False)
 
 
 #class BDFtests(unittest.TestCase):
