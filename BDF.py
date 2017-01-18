@@ -1,17 +1,21 @@
+import matplotlib
+
 from assimulo.explicit_ode import Explicit_ODE
 from assimulo.ode import *
 from assimulo.solvers import CVode
 from io import StringIO
+from collections import OrderedDict
 
 import matplotlib.pyplot as plt
+import math
 import numpy as np
 import os
+import re
 import scipy.linalg as SL
 import scipy
 import step
 import sys
 import unittest
-
 
 
 # Variables for saving plots.
@@ -34,7 +38,7 @@ class DefaultData(object):
         self.y = scipy.sin(self.phi)
         self.init_list = [scipy.array([self.x, self.y, 0, 0])]
         self.k = 100
-        self.k_list = [0, 1, 5, 10, 100, 1000]
+        self.k_list = [0.1, 1, 5, 10, 100, 1000]
         self.order_list = [2, 3, 4]
         self.name = "Nonlinear Pendulum: "
 
@@ -237,7 +241,7 @@ def run_simulations(show_plot=True):
             rows += 1
         return rows, collumns
 
-    def run_permutations(test_case, statistics, show_plot):
+    def run_permutations(case_dict, statistics, show_plot):
         """ Possible variations:
                 - k-values.
                 - initial values.
@@ -245,13 +249,13 @@ def run_simulations(show_plot=True):
         """
 
         # Get title format.
-        inner_title_format = test_case.get('title')
+        inner_title_format = case_dict.get('title')
 
         # Get all varying variables.
-        k_list = test_case.get('k_list')
-        initial_values_list = test_case.get('init_value_list')
-        order_list = test_case.get('order_list')
-        type = test_case.get('type')
+        k_list = case_dict.get('k_list')
+        initial_values_list = case_dict.get('init_value_list')
+        order_list = case_dict.get('order_list')
+        type = case_dict.get('type')
 
         # Number of permutations.
         permutations = len(k_list)*len(initial_values_list)*len(order_list)
@@ -261,10 +265,10 @@ def run_simulations(show_plot=True):
         current_subplot = 1 # Starts at one.
 
         # Get width_mod if any.
-        width_mod = test_case.get('width_mod', '')
+        width_mod = case_dict.get('width_mod', '')
 
         # Get caption, if any.
-        caption = test_case.get('caption', '')
+        caption = case_dict.get('caption', '')
 
         # Make basis for one big plot.
         global global_figure_counter
@@ -274,15 +278,15 @@ def run_simulations(show_plot=True):
         global_figure_counter += 1
 
         # Create list for appending runtime statistics.
-        stat_list = statistics[test_case.get('name')] = []
+        stat_list = statistics[case_dict.get('name')] = []
 
         # Iterate over all combinations of the changing variables listed above.
         for k_value in k_list:
             for initial_values in initial_values_list:
                 for bdf_order in order_list:
                     # Gather missing data.
-                    name = test_case.get('name')
-                    sim_tmax = test_case.get('sim_tmax')
+                    name = case_dict.get('name')
+                    sim_tmax = case_dict.get('sim_tmax')
 
 
                     # Construct information string.
@@ -318,13 +322,14 @@ def run_simulations(show_plot=True):
                                           sp_dim_row,
                                           sp_dim_col,
                                           current_subplot,
-                                          test_case)
+                                          case_dict)
                     # Toggle plotting.
                     case.show_plot = show_plot
                     # Run the single test case.
                     run_single_case(case, fig, stat_list)
                     SEPARATE_OUTPUT()
                     current_subplot += 1
+
 
         SEPARATE_OUTPUT("\n\n[!] #### Group done, continuing with next group of tests.")
         figure_filename = plot_template_name.format(name)
@@ -335,28 +340,29 @@ def run_simulations(show_plot=True):
         # Generate latex code to import the figure.
         latex_import = latex_get_figure_frame(width_mod, plot_path.replace("TeX/", ''),
                                              caption)
-        latex_output = figure_filename.replace('.pdf','.txt')
+        latex_output = figure_filename.replace('.pdf','.tex')
         with open(os.path.join(plot_folder, latex_output), 'w') as output:
             output.write(latex_import)
 
-    def run_single_case(test_case, figure, stat_list):
+
+    def run_single_case(case_dict, figure, stat_list):
         """ Run a single test case. """
         # Get method defining right hand side of pendulum equation.
-        pend_func = pend_rhs_function(test_case.k)
+        pend_func = pend_rhs_function(case_dict.k)
         # Generate the model based on the function fetched above.
-        pend_mod = Explicit_Problem(pend_func, y0=test_case.init)
-        pend_mod.name = test_case.name
+        pend_mod = Explicit_Problem(pend_func, y0=case_dict.init)
+        pend_mod.name = case_dict.name
         # Create BDF solver.
         exp_sim = ""
-        if test_case.type == "BDF":
-            exp_sim = BDF(pend_mod, order=test_case.order)
-        elif test_case.type == "CVODE":
-            test_case_dict = test_case.test_case
+        if case_dict.type == "BDF":
+            exp_sim = BDF(pend_mod, order=case_dict.order)
+        elif case_dict.type == "CVODE":
+            case_dict_dict = case_dict.case_dict
             exp_sim = CVode(pend_mod)
-            atol = test_case_dict.get('cvode_atol')
-            rtol = test_case_dict.get('cvode_rtol')
-            discretization = test_case_dict.get('cvode_discretization')
-            maxorder = test_case_dict.get('cvode_maxorder')
+            atol = case_dict_dict.get('cvode_atol')
+            rtol = case_dict_dict.get('cvode_rtol')
+            discretization = case_dict_dict.get('cvode_discretization')
+            maxorder = case_dict_dict.get('cvode_maxorder')
             if atol: # Set CVode atol value.
                 exp_sim.atol = atol
             if rtol: # Set CVode rtol value.
@@ -369,17 +375,16 @@ def run_simulations(show_plot=True):
         old_sys_out = sys.stdout
         sys.stdout = StringIO()
         # Run the simulation.
-        t, y = exp_sim.simulate(test_case.sim_tmax)
+        t, y = exp_sim.simulate(case_dict.sim_tmax)
         # Append stats to stat_list.
         simulation_stats = exp_sim.get_statistics()
-        stat_list.append(simulation_stats)
-        print(simulation_stats.keys())
+        stat_list.append((simulation_stats, case_dict))
         # Pick out the first and second value of y.
         first_line, second_line = filter_out_y(y)
         # Grab the subplot data.
-        sp_dim_row = test_case.sp_dim_row
-        sp_dim_col = test_case.sp_dim_col
-        sp_current = test_case.current_subplot
+        sp_dim_row = case_dict.sp_dim_row
+        sp_dim_col = case_dict.sp_dim_col
+        sp_current = case_dict.current_subplot
         # Create new subplot.
         subplot = figure.add_subplot(sp_dim_row, sp_dim_col, sp_current,
                                      adjustable='box')
@@ -389,9 +394,9 @@ def run_simulations(show_plot=True):
         # Put legend in upper left corner.
         plt.legend(loc='upper right', frameon=False)
         # Add title.
-        subplot.title.set_text(test_case.title)
+        subplot.title.set_text(case_dict.title)
         # Should we show the plot?
-        if test_case.show_plot:
+        if case_dict.show_plot:
             plt.show()
         # Restore stdout.
         sys.stdout = old_sys_out
@@ -400,7 +405,7 @@ def run_simulations(show_plot=True):
     class SingleTestCase():
         """ Class representing a single BDF test case. """
         def __init__(self, name, title, order, type, sim_tmax, k, init,
-                sp_dim_row, sp_dim_col, current_subplot, test_case):
+                sp_dim_row, sp_dim_col, current_subplot, case_dict):
             self.name = name
             self.title = title
             self.order = order
@@ -412,7 +417,7 @@ def run_simulations(show_plot=True):
             self.sp_dim_col = sp_dim_col
             self.current_subplot = current_subplot
             self.plot = True
-            self.test_case = test_case
+            self.case_dict = case_dict
 
     # Task 3, testing slightly stretched spring with BDF-2,3,4 method for
     # various values of k.
@@ -443,6 +448,7 @@ def run_simulations(show_plot=True):
             'cvode_rtol': opt_dict.get('rtol'),
             'cvode_maxorder': opt_dict.get('maxorder'),
             'cvode_discretization': opt_dict.get('discretization'),
+            'stat_caption': opt_dict.get('stat_caption'),
         }
 
 
@@ -491,24 +497,28 @@ def run_simulations(show_plot=True):
     for index, atol in enumerate(linfill(1e-2, 1, 4)):
         fmt = "Simulation for varying k with CVODE, with"+\
               " $x_{{init}}$={:.2f}, atol={:.2f}."
+        stat_caption = "Iterations and steps for varying atol values."
         task4_opts = {
                     'name': "CVODE_atol_{}".format(index),
                     'caption': fmt.format(start_x, atol),
                     'title': "k: {{k}}, atol: {:.2f}.".format(atol),
                     'type': "CVODE",
+                    'stat_caption': stat_caption,
                     'atol': atol,
                 }
         task4_simulations.append(generate_plots_different_k(task4_opts))
 
     # Task4: Add output for different CVODE rtol values.
-    for index, rtol in enumerate(linfill(0, 1, 4)):
+    for index, rtol in enumerate(linfill(0.1, 1, 4)):
         fmt = "Simulation for varying k with CVODE, with"+\
               " $x_{{init}}$={:.2f}, rtol={:.2f}."
+        stat_caption = "Iterations and steps for varying rtol values."
         task4_opts = {
                     'name': "CVODE_rtol_{}".format(index),
                     'caption': fmt.format(start_x, rtol),
                     'title': "k: {{k}}, rtol: {:.2f}.".format(rtol),
                     'type': "CVODE",
+                    'stat_caption': stat_caption,
                     'rtol': rtol,
                 }
         task4_simulations.append(generate_plots_different_k(task4_opts))
@@ -516,6 +526,7 @@ def run_simulations(show_plot=True):
     # Task4: Add output for different CVODE maxord values.
     for index, maxorder in enumerate([1,2,5]):
         maxorder = int(maxorder)
+        stat_caption = "Iterations and steps for varying maxorder values."
         fmt = "Simulation for varying k with CVODE, with"+\
               " $x_{{init}}$={:.2f}, maxorder={}."
         task4_opts = {
@@ -523,22 +534,28 @@ def run_simulations(show_plot=True):
                     'caption': fmt.format(start_x, maxorder),
                     'title': "k: {{k}}, maxorder: {}.".format(maxorder),
                     'type': "CVODE",
+                    'stat_caption': stat_caption,
                     'maxorder': maxorder,
                 }
         task4_simulations.append(generate_plots_different_k(task4_opts))
 
     # Task4: Run default values for BDF and Adams.
+    only_discretization = []
     for index, discretization in enumerate(['BDF','Adams']):
         fmt = "Simulation for varying k with CVODE using {}, with"+\
               " $x_{{init}}$={:.2f}."
+        stat_caption = "Iterations and steps for varying discretizations."
         task4_opts = {
                     'name': "CVODE_discretization_{}".format(index),
                     'caption': fmt.format(discretization, start_x),
                     'title': "{} - k: {{k}}.".format(discretization),
                     'type': "CVODE",
+                    'stat_caption': stat_caption,
                     'discretization': discretization,
                 }
-        task4_simulations.append(generate_plots_different_k(task4_opts))
+        plots = generate_plots_different_k(task4_opts)
+        task4_simulations.append(plots)
+        only_discretization.append(plots)
 
     # Test order 4 BDF with varying k's.
     ord_4_var_k = {
@@ -580,18 +597,93 @@ def run_simulations(show_plot=True):
             ]
     }
 
-    test_cases = [
+    case_dicts = [
 #            ord_4_var_k,
 #            var_ord_k_1000,
 #            excited_pend_var_init,
-#            *task3_simulations,
+            *task3_simulations,
             *task4_simulations,
+#             *only_discretization,
             ]
 
-    statistics = {}
-    for case_dict in test_cases:
+    statistics = OrderedDict()
+    for case_dict in case_dicts:
         run_permutations(case_dict, statistics, False)
 
+    classes = {}
+    for name, data in statistics.items():
+        if re.match(r".*_\d+$", name):
+            category_name = re.sub(r"_\d+$", "", name)
+            category_list = classes.get(category_name)
+            if not category_list:
+                category_list = classes[category_name] = []
+            category_list.append(data)
+
+    for class_name, data_list in classes.items():
+
+        # Create class stat figure.
+        stat_figure_filename = "{}_stats.pdf".format(class_name)
+        stat_path = os.path.join(plot_folder, stat_figure_filename)
+
+        fig, ax = plt.subplots(2, sharex=True)
+
+        # Iterate over all data from this test-class.
+        for tuple_list in data_list:
+            k_values = []
+            statistics = { # Pick data that is interesting.
+                    "nsteps": [],
+                    "nniters": [],
+                    }
+
+            def grab_cvode_variable(case_dict):
+                """ Iterate though all the case_dict variable and extract the
+                value that is currently being used and use that as a label. """
+                for key, data in case_dict.case_dict.items():
+                    if not key.startswith("cvode_"):
+                        continue
+                    if not data:
+                        continue
+                    if type(data) == float:
+                        data = "{:.2f}".format(data)
+                    return "{} = {}".format(key.replace("cvode_", ""), data)
+
+            for data, case_dict in tuple_list:
+                 k_values.append(case_dict.k)
+                 variable = grab_cvode_variable(case_dict)
+                 for key in statistics:
+                     statistics[key].append(data[key])
+
+            k_values = sorted(k_values)
+            log_k_values = [math.log(val, 10) for val in k_values]
+
+            # Round to 1 decimal place.
+            tick_lablels = ["{:.1f}".format(val) for val in log_k_values]
+
+            # Plot line for current test case.
+            for index, (key, data) in enumerate(statistics.items()):
+                log_data = [(val if val <= 0 else math.log(val, 10)) for val in data]
+                label = grab_cvode_variable(case_dict)
+                line = ax[index].plot(log_k_values, log_data, label=label)
+                ax[index].set_xticks(log_k_values)
+                ax[index].set_xticklabels(tick_lablels)
+                ax[index].legend()
+
+            ax[1].set_xlabel("log_10(k)")
+            ax[0].set_ylabel("Steps (log_10)")
+            ax[1].set_ylabel("Iterations (log_10)")
+
+            ax[0].set_title("Statistics.")
+
+        first_case_dict = data_list[0][0][1].case_dict
+        statistics_caption = first_case_dict['stat_caption']
+        latex_import = latex_get_figure_frame(1.0, stat_path.replace("TeX/", ''),
+                                              statistics_caption)
+
+        plt.savefig(stat_path)
+        latex_output = stat_figure_filename.replace('.pdf','.tex')
+        with open(os.path.join(plot_folder, latex_output), 'w') as output:
+            output.write(latex_import)
+        plt.close(fig) # Close plot to avoid re-usage.
 
 #class BDFtests(unittest.TestCase):
 
@@ -704,7 +796,8 @@ def task_1(k, x_start_offset):
 
     latex_import = latex_get_figure_frame(width_mod, plot_path.replace("TeX/", ''),
                                           caption)
-    latex_output = figure_filename.replace('.pdf','.txt')
+    latex_output = figure_filename.replace('.pdf','.tex')
+    plt.close(fig)
     with open(os.path.join(plot_folder, latex_output), 'w') as output:
         output.write(latex_import)
 
