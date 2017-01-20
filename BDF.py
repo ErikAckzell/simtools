@@ -118,63 +118,6 @@ class BDF(Explicit_ODE):
         return ID_PY_OK, tres, yres
 
 
-#    def get_statistics(self):
-#        """ Gather statistics and return them as a string. """
-#
-#        # Gather necessary information.
-#        name = self.problem.name
-#        stepsize = self.options["h"]
-#        num_steps = str(self.statistics['nsteps'])
-#        num_func_eval = str(self.statistics['nfcns'])
-#        order = self.order
-#
-#        def heading(string):
-#            """ Return if the string is a heading. """
-#            return not string.startswith(' ')
-#
-#        def get_padded_format(string):
-#            """ Return dynamically padded format string. """
-#            if heading(string): # No padding on headings.
-#                return string
-#            # Only count length to the first ':'.
-#            current_len = len(string.split(':')[0])
-#            len_diff = max_len - current_len
-#            # Only add padding in front of the first ':'.
-#            string = string.replace(':', "{}:".format(len_diff*' '), 1)
-#            return string
-#
-#        message_primitives = [
-#                    ("Final Run Statistics: {}", name),
-#                    ("  Step-length: {}", stepsize),
-#                    ("  Number of Steps: {}", num_steps),
-#                    ("  Number of Function Evaluations: {}", num_steps),
-#                    ("", ""), # newline.
-#                    ("Solver options:", ""),
-#                    ("  Solver: BDF: {}", order),
-#                    ("  Solver type: Fixed step.", "" ),
-#                ]
-#
-#        # Get maximum length of the formatting strings.
-#        max_len = max([len(format_string) for (format_string, _) in
-#            message_primitives])
-#        # Add two.
-#        max_len += 2
-#
-#        # Iterate over all message primitives and append to buffer.
-#        string_buffer = []
-#        for format_string, data in message_primitives:
-#            final_format = get_padded_format(format_string)
-#            string_buffer.append(final_format.format(data))
-#
-#        # Return buffer as a string.
-#        return '\n'.join(string_buffer)
-#
-#
-#    def print_statistics(self, verbose=NORMAL):
-#        """ Use get_statistics() method and send to logger. """
-#        self.log_message(self.get_statistics(), verbose)
-
-
 #!! Include: task1
 def pend_rhs_function(k):
     """
@@ -198,6 +141,8 @@ def pend_rhs_function(k):
 
 def latex_get_figure_frame(width_mod, name, caption=""):
     """ Generate latex code for importing figure. """
+    if not width_mod: # Avoid printing None.
+        width_mod = ''
     frame = "\\begin{{figure}}[H]\n"+\
             "   \\center"+\
             "   \\includegraphics[width={}\\textwidth]{{{}}}\n"+\
@@ -339,7 +284,7 @@ def run_simulations(show_plot=True):
         plt.savefig(plot_path)
         # Generate latex code to import the figure.
         latex_import = latex_get_figure_frame(width_mod, plot_path.replace("TeX/", ''),
-                                             caption)
+                                              caption)
         latex_output = figure_filename.replace('.pdf','.tex')
         with open(os.path.join(plot_folder, latex_output), 'w') as output:
             output.write(latex_import)
@@ -441,7 +386,7 @@ def run_simulations(show_plot=True):
             'type': opt_dict.get('type', "BDF"),
             'sim_tmax': 8,
             'caption': opt_dict.get('caption'),
-            'k_list': default.k_list,
+            'k_list': opt_dict.get('k_list',  default.k_list),
             'init_value_list': [[default.x+delta_x, default.y, 0, 0]],
             'title_values': "",
             'cvode_atol': opt_dict.get('atol'),
@@ -449,10 +394,11 @@ def run_simulations(show_plot=True):
             'cvode_maxorder': opt_dict.get('maxorder'),
             'cvode_discretization': opt_dict.get('discretization'),
             'stat_caption': opt_dict.get('stat_caption'),
+            'width_mod': opt_dict.get('width_mod'),
         }
 
 
-    # Generate test cases for task 3.
+        # Task3: Generate test cases.
     fmt_caption = "Simulation done by {} for different values of k, with "+\
                   "$x_{{init}}$={:.2f}."
     start_x = default.x+delta_x
@@ -465,10 +411,11 @@ def run_simulations(show_plot=True):
                 'caption': fmt_caption.format(name, start_x),
                 'title': "{}, k: {{k}}.".format(name),
                 'type': "BDF",
+#                'width_mod': 0.8,
                 }
         task3_simulations.append(generate_plots_different_k(task3_opts))
 
-    # Generate test cases for task 4 with default values of atol, rtol and
+    # Task4: Generate test cases for task 4 with default values of atol, rtol and
     # maxorder.
     fmt = "Simulation for varying k with CVODE, with $x_{{init}}$={:.2f}."
     task4_opts = {
@@ -494,8 +441,8 @@ def run_simulations(show_plot=True):
         return float_range(a, b, step)
 
     # Task4: Add output for different CVODE atol values.
-    for index, atol in enumerate(linfill(1e-2, 1, 4)):
-        fmt = "Simulation for varying k with CVODE, with"+\
+    for index, atol in enumerate(linfill(1e-2, 1, 3)):
+        fmt = "Simulation for varying k using CVODE, "+\
               " $x_{{init}}$={:.2f}, atol={:.2f}."
         stat_caption = "Iterations and steps for varying atol values."
         task4_opts = {
@@ -505,12 +452,14 @@ def run_simulations(show_plot=True):
                     'type': "CVODE",
                     'stat_caption': stat_caption,
                     'atol': atol,
+                    'k_list': [1, 10, 100],
+                    'width_mod': 0.8,
                 }
         task4_simulations.append(generate_plots_different_k(task4_opts))
 
     # Task4: Add output for different CVODE rtol values.
-    for index, rtol in enumerate(linfill(0.1, 1, 4)):
-        fmt = "Simulation for varying k with CVODE, with"+\
+    for index, rtol in enumerate(linfill(0.1, 1, 3)):
+        fmt = "Simulation for varying k using CVODE, "+\
               " $x_{{init}}$={:.2f}, rtol={:.2f}."
         stat_caption = "Iterations and steps for varying rtol values."
         task4_opts = {
@@ -520,6 +469,7 @@ def run_simulations(show_plot=True):
                     'type': "CVODE",
                     'stat_caption': stat_caption,
                     'rtol': rtol,
+                    'k_list': [1, 10, 100],
                 }
         task4_simulations.append(generate_plots_different_k(task4_opts))
 
@@ -527,7 +477,7 @@ def run_simulations(show_plot=True):
     for index, maxorder in enumerate([1,2,5]):
         maxorder = int(maxorder)
         stat_caption = "Iterations and steps for varying maxorder values."
-        fmt = "Simulation for varying k with CVODE, with"+\
+        fmt = "Simulation for varying k using CVODE, "+\
               " $x_{{init}}$={:.2f}, maxorder={}."
         task4_opts = {
                     'name': "CVODE_maxorder_{}".format(index),
@@ -536,13 +486,14 @@ def run_simulations(show_plot=True):
                     'type': "CVODE",
                     'stat_caption': stat_caption,
                     'maxorder': maxorder,
+                    #'k_list': [1, 10, 100],
                 }
         task4_simulations.append(generate_plots_different_k(task4_opts))
 
     # Task4: Run default values for BDF and Adams.
     only_discretization = []
     for index, discretization in enumerate(['BDF','Adams']):
-        fmt = "Simulation for varying k with CVODE using {}, with"+\
+        fmt = "Simulation for varying k using CVODE using {}, "+\
               " $x_{{init}}$={:.2f}."
         stat_caption = "Iterations and steps for varying discretizations."
         task4_opts = {
@@ -557,50 +508,7 @@ def run_simulations(show_plot=True):
         task4_simulations.append(plots)
         only_discretization.append(plots)
 
-    # Test order 4 BDF with varying k's.
-    ord_4_var_k = {
-        'name': "ord_4_var_k",
-        'title': "BDF: {order}, k={k}",
-        'order_list': [4],
-        'sim_tmax': 5,
-        'caption': "Simulation for different values of k with BDF order 4.",
-        'k_list': default.k_list,
-        'init_value_list': default.init_list,
-        'title_values': 'k_list'
-        }
-
-    # Test varying order with k = 1000
-    var_ord_k_1000 = {
-        'name': "var_ord_k_1000",
-        'title': "k: {k}, BDF-order: {order}",
-        'order_list': default.order_list,
-        'sim_tmax': 10,
-        'k_list': [1000],
-        'caption': "Simulation for different BDF orders, k = 1000.",
-        'init_value_list': default.init_list,
-        }
-
-    # Test excited pendulum for different initial values with k = 100.
-    excited_pend_var_init = {
-        'name': "excited_pend_var_init",
-        'title': "{initial_values}",
-        'order_list': [4],
-        'sim_tmax': 10,
-        'k_list': [100],
-        'width_mod': 1.0,
-        'caption': "Excited pendulum for different initial values with k = 100.",
-        'init_value_list': [
-            [default.x, default.y, 0, 0],
-            [default.x+0.01, default.y, 0, 0],
-            [default.x+0.1, default.y, 0, 0],
-            [default.x+0.5, default.y, 0, 0],
-            ]
-    }
-
     case_dicts = [
-#            ord_4_var_k,
-#            var_ord_k_1000,
-#            excited_pend_var_init,
             *task3_simulations,
             *task4_simulations,
 #             *only_discretization,
@@ -672,11 +580,11 @@ def run_simulations(show_plot=True):
             ax[0].set_ylabel("Steps (log_10)")
             ax[1].set_ylabel("Iterations (log_10)")
 
-            ax[0].set_title("Statistics.")
+            ax[0].set_title("Runtime statistics.")
 
         first_case_dict = data_list[0][0][1].case_dict
         statistics_caption = first_case_dict['stat_caption']
-        latex_import = latex_get_figure_frame(1.0, stat_path.replace("TeX/", ''),
+        latex_import = latex_get_figure_frame(0.7, stat_path.replace("TeX/", ''),
                                               statistics_caption)
 
         plt.savefig(stat_path)
@@ -685,81 +593,6 @@ def run_simulations(show_plot=True):
             output.write(latex_import)
         plt.close(fig) # Close plot to avoid re-usage.
 
-#class BDFtests(unittest.TestCase):
-
-#    def test_order_2_FPI(self):
-#        k = 100
-#        order = 2
-#        corrector = 'FPI'
-#        pend_func = pend_rhs_function(k)
-#        pend_mod = Explicit_Problem(pend_func, y0=self.y0)
-#        pend_mod.name = \
-#         'Nonlinear Pendulum, FPI, k = {k}, init = {init}'.format(k=k, init=y0)
-#        exp_sim = BDF(pend_mod, order=order, corrector=corrector)
-#        t, y = exp_sim.simulate(10)
-#        exp_sim.plot(mask=[1, 1, 0, 0])
-#        plt.show()
-#
-#    def test_EE_k_influence(self):
-#        order = 1
-#        for k in self.klist:
-#            pend_func = pend_rhs_function(k)
-#            pend_mod = Explicit_Problem(pend_func, y0=self.y0)
-#            pend_mod.name = \
-#             'Nonlinear Pendulum, EE, k = {k}, init = {init}'.format(k=k,
-#                                                                     init=self.y0)
-#            exp_sim = BDF(pend_mod, order=order)
-#            t, y = exp_sim.simulate(10)
-#            exp_sim.plot(mask=[1, 1, 0, 0])
-#            plt.show()
-#
-# ========================================
-#  CVODE
-# ========================================
-#
-#    def test_CVode_method_params_influence(self):
-#        k = 100
-#        phi = 2 * scipy.pi - 0.3
-#        x = scipy.cos(phi)
-#        y = scipy.sin(phi)
-#        t0 = 0
-#        y0 = scipy.array([x+0.2, y, 0, 0])
-#        pend_func = pend_rhs_function(k)
-#        maxordlist = list(range(0, 7, 2))
-#        atollist = [scipy.array([2, 1, 2, 2]) * 10 ** (-i)
-#                    for i in range(0, 7, 2)]
-#        rtollist = [10 ** (-i) for i in range(0, 7, 2)]
-#        for maxord in maxordlist:
-#            for atol in atollist:
-#                for rtol in rtollist:
-#                    mod = Explicit_Problem(pend_func, y0, t0)
-#                    mod.name = \
-#                     'Nonlinear Pendulum, CVode, k={k}, stretched, \n\
-#                      maxord={maxord}, atol={atol}, rtol={rtol}'.format(k=k,
-#                                        maxord=maxord, atol=atol, rtol=rtol)
-#                    sim = CVode(mod)
-#                    sim.maxord = maxord
-#                    sim.atol = atol
-#                    sim.rtol = rtol
-#                    t, y = sim.simulate(10)
-#                    sim.plot(mask=[1, 1, 0, 0])
-#                    plt.show()
-#
-#    def test_CVode_k_influence(self):
-#        phi = 2 * scipy.pi - 0.3
-#        x = scipy.cos(phi)
-#        y = scipy.sin(phi)
-#        t0 = 0
-#        y0 = scipy.array([x+0.2, y, 0, 0])
-#        for k in self.klist:
-#            pend_func = pend_rhs_function(k)
-#            mod = Explicit_Problem(pend_func, y0, t0)
-#            mod.name = \
-#             'Nonlinear Pendulum, CVode, k={k}, stretched'.format(k=k)
-#            sim = CVode(mod)
-#            t, y = sim.simulate(10)
-#            sim.plot(mask=[1, 1, 0, 0])
-#            plt.show()
 
 def task_1(k, x_start_offset):
     """ Method that performs and plots the first task from project 1. """

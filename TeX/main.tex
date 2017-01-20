@@ -8,6 +8,8 @@
 \usepackage{float}
 % Maths
 \usepackage{amsmath}
+% Spacing
+\usepackage{xspace}
 
 % Title and authors.
 \title{FMNN05 \\\large{Report}}
@@ -46,15 +48,15 @@
 % No page number on first side.
 \thispagestyle{empty}
 
+\newcommand{\todo}[1] {\textcolor{red}{\textbf{[TODO]: #1}\xspace}}
+\newcommand{\bdf}[1] {\texttt{BDF-#1\xspace}}
+\newcommand{\EE} {\texttt{Explicit Euler\xspace}}
+
 \newpage
 
 \section{Project 01}
 
     \subsection{Task 1}
-
-%        Task 1 begins by defining the equations that describe the motion of an
-%        elastic pendulum, where the bar is replaced with a spring with spring
-%        constant $k$ and other attributes set to 1.
 
       Task 1 requires a equation that describes the motion of an elastic
       pendulum where the bar is replaced with a spring. The spring is given
@@ -85,38 +87,87 @@
 
     \subsection{Task 2}
 
-      Task 2 consists of using Assimulo to implementing the \texttt{BDF-3} and
-      \texttt{BDF-4} algorithms.
+      Task 2 consists of using Assimulo to implementing the \bdf{3} and
+      \bdf{4} algorithms.
 
       % Include code for task2 BDF3.
       \input{includes/code/task2_BDF3.tex}
 
+      \
+
+      \noindent
+      The source shown above is the Python implementation of the \bdf{3}
+      algorithm used for the experiments that follow. The implementation makes
+      use of the \texttt{fsolve} method from the \texttt{scipy} package in
+      order to use Newton's method as its iteration method.
+
+      The alpha values are precalculated values taken from \todo{Find
+      source of our alpha values and insert here}. \\
+
+      \noindent
+      \bdf{4} is implemented in the same manner, the Python source for
+      that implementation is shown below.
+
+      \newpage
+
       % Include code for task2 BDF4.
       \input{includes/code/task2_BDF4.tex}
 
+    \newpage
     \subsection{Task 3}
+
+      Task 3 consists of evaluating what influence the variable $k$ (the
+      spring stiffness) has on the choice of method used to simulate the
+      pendulum. This was done by comparing the methods: \EE{}, \bdf{2}, \bdf{3}
+      and \bdf{4} with the k-values 0.1, 1, 5, 10, 100 and 1000.
 
       \input{includes/figures/task3_ord1.tex}
       \input{includes/figures/task3_ord2.tex}
       \input{includes/figures/task3_ord3.tex}
       \input{includes/figures/task3_ord4.tex}
+
+      \todo{Task 3 conclusions.}
+
+    \newpage
     \subsection{Task 4}
+
+      Task 4 requires that the tests from Task 3 are repeated, but
+      instead of using the Python implementations of the different functions,
+      the simulations should be done using CVODE instead.
+
       \input{includes/figures/CVODE_var_k.tex}
 
-      \subsubsection{atol-values}
+      \noindent
+      When using CVODE, there are some values that can be changed to make the
+      solver behave differently. These values are; ATOL, RTOL, MAXORD and
+      discretization, the second part of the task involves changing these
+      values and see how it affects the output and performance of the
+      simulation.
+
+
+      \subsubsection{Varying the ATOL-value}
+
+        By using CVODE and running the simulation for the k-values: 1, 10 and 100
+        in combination with the ATOL parameters 0.01, 0.55 and 1.0 the following
+        plots and performance statistics were received.
 
         \input{includes/figures/CVODE_atol_0.tex}
         \input{includes/figures/CVODE_atol_1.tex}
         \input{includes/figures/CVODE_atol_2.tex}
-        \input{includes/figures/CVODE_atol_3.tex}
+%        \input{includes/figures/CVODE_atol_3.tex}
+
         \input{includes/figures/CVODE_atol_stats.tex}
 
-      \subsubsection{rtol-values}
+      \newpage
+      \subsubsection{Varying the RTOL-value}
+
+        Using the same
 
         \input{includes/figures/CVODE_rtol_0.tex}
         \input{includes/figures/CVODE_rtol_1.tex}
         \input{includes/figures/CVODE_rtol_2.tex}
-        \input{includes/figures/CVODE_rtol_3.tex}
+%        \input{includes/figures/CVODE_rtol_3.tex}
+
         \input{includes/figures/CVODE_rtol_stats.tex}
 
       \subsubsection{maxorder}
